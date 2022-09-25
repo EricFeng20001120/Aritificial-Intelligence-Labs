@@ -57,6 +57,14 @@ def vertical_pieces(config):
     
     return digits_vertical
 
+# Function that returns all horizontal pieces
+# We know the 5 1x2 pieces are denoted by one of [2, 3, 4, 5, 6]
+def horizontal_pieces(config, vertical_pieces_list):
+    pieces = ['2', '3', '4', '5', '6'] 
+    # Create list for all pieces that aren't in the vertical list
+    digits_horizontal = [x for x in pieces if x not in vertical_pieces_list]
+    return digits_horizontal
+
 # Simple Manhattan distance function
 def manhattan_distance(config):
     # Find indices of the Cao Cao piece
@@ -66,6 +74,13 @@ def manhattan_distance(config):
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
     manhattan_cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
     return manhattan_cost
+
+# Successor function
+def successor_nodes(config, vertical, horizontal):
+    path = []
+    # Locate the empty squares as they are the only pieces which can move
+    empty_squares = coordinates_locater('0', config)
+    return path
 
 # Output the dfs file
 with open(dfs_filename, "w" ) as dfs_f:
@@ -82,8 +97,11 @@ print(final_time)
 
 print(coordinates_locater('1', puzzle))
 
-vertical_blocks = vertical_pieces(puzzle)
-print(vertical_blocks)
+vertical_pieces_list = vertical_pieces(puzzle)
+print(vertical_pieces_list)
+
+horizontal_pieces_list = horizontal_pieces(puzzle, vertical_pieces_list)
+print(horizontal_pieces_list)
 
 print(manhattan_distance(puzzle))
 
