@@ -1,5 +1,6 @@
 import sys
 import time
+import copy
 
 # Create global variables for the number of columns and rows of the board
 cols = 5
@@ -30,6 +31,16 @@ def coordinates_locater(digit, config):
             if config[i][j] == digit:
                 index.append((i, j))
     return index
+
+# Locate the empty squares as they are the only pieces which can move
+def empty_space_locater(config):
+    empty_squares = coordinates_locater('0', config)
+
+    # Find individual x and y coordinates of the two empty spaces
+    first_x, first_y = empty_squares[0][1], empty_squares[0][0]
+    second_x, second_y = empty_squares[1][1], empty_squares[1][0]
+
+    return first_x, first_y, second_x, second_y
 
 # Function to find all the vertical pieces
 # This is needed as there are 32 initial configurations
@@ -75,12 +86,13 @@ def manhattan_distance(config):
     manhattan_cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
     return manhattan_cost
 
-# Successor function
-def successor_nodes(config, vertical, horizontal):
+# Successor function which examines every possibility
+def successor_nodes(config):#, vertical, horizontal):
     path = []
-    # Locate the empty squares as they are the only pieces which can move
-    empty_squares = coordinates_locater('0', config)
-    return path
+    # Get coordinates for empty spaces
+    first_x, first_y, second_x, second_y = empty_space_locater(config)
+
+    return second_y
 
 # Output the dfs file
 with open(dfs_filename, "w" ) as dfs_f:
@@ -90,13 +102,6 @@ with open(dfs_filename, "w" ) as dfs_f:
 with open(astar_filename, "w") as astar_f:
     print("Hello", file=astar_f)
 
-end_time = time.time()
-final_time = end_time - start_time
-
-print(final_time)
-
-print(coordinates_locater('1', puzzle))
-
 vertical_pieces_list = vertical_pieces(puzzle)
 print(vertical_pieces_list)
 
@@ -105,4 +110,9 @@ print(horizontal_pieces_list)
 
 print(manhattan_distance(puzzle))
 
-print(puzzle)
+print(successor_nodes(puzzle))
+
+end_time = time.time()
+final_time = end_time - start_time
+
+print(final_time)
