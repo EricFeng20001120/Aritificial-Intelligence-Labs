@@ -37,21 +37,23 @@ def coordinates_locater(digit, config):
 def vertical_pieces(config):
     # Initialize a list that stores the vertical pieces
     digits_vertical = []
+    # Initialize coordinates variables which find the index of numbers
     coordinates_2 = coordinates_locater('2', config)
-    if coordinates_2[0][1] == coordinates_2[1][1]:
-        digits_vertical.append('2')
     coordinates_3 = coordinates_locater('3', config)
-    if coordinates_3[0][1] == coordinates_3[1][1]:
-        digits_vertical.append('3')   
     coordinates_4 = coordinates_locater('4', config)
-    if coordinates_4[0][1] == coordinates_4[1][1]:
-        digits_vertical.append('4')
     coordinates_5 = coordinates_locater('5', config)
-    if coordinates_5[0][1] == coordinates_5[1][1]:
-        digits_vertical.append('5')
     coordinates_6 = coordinates_locater('6', config)
+    # Find if the y coordinate below the index is the same
     if coordinates_6[0][1] == coordinates_6[1][1]:
         digits_vertical.append('6')
+    if coordinates_5[0][1] == coordinates_5[1][1]:
+        digits_vertical.append('5')
+    if coordinates_4[0][1] == coordinates_4[1][1]:
+        digits_vertical.append('4')
+    if coordinates_3[0][1] == coordinates_3[1][1]:
+        digits_vertical.append('3') 
+    if coordinates_2[0][1] == coordinates_2[1][1]:
+        digits_vertical.append('2')  
     
     return digits_vertical
 
