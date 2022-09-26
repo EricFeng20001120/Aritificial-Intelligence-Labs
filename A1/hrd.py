@@ -1,6 +1,8 @@
+import re
 import sys
 import time
 import copy
+import heapq
 
 start_time = time.time()
 
@@ -84,6 +86,25 @@ def manhattan_distance(config):
     leftmost_x_pos, leftmost_y_pos = index_of_ones[0][1], index_of_ones[0][0]
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
     manhattan_cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
+
+    '''# find displaced blocks for following Manhattan
+    for y in range(leftmost_y_pos, 3):
+        if config[y+2][leftmost_x_pos] != '0':
+            manhattan_cost += 1
+        if config[y+2][leftmost_x_pos+1] != '0':
+            manhattan_cost += 1
+            
+    if leftmost_x_pos == 0:
+        if config[3][2] != '0':
+            manhattan_cost += 1
+        if config[4][2] != '0':
+            manhattan_cost += 1
+    if leftmost_x_pos == 2:
+        if config[3][1] != '0':
+            manhattan_cost += 1
+        if config[4][1] != '0':
+            manhattan_cost += 1'''
+
     return manhattan_cost
 
 # Successor function which examines every possibility with the empty squares
@@ -265,6 +286,33 @@ def successor_nodes(config, vertical, horizontal):
 
     return path
 
+vertical_pieces_list = vertical_pieces(puzzle)
+
+horizontal_pieces_list = horizontal_pieces(puzzle, vertical_pieces_list)
+
+def reflection(config):
+    updated_config = copy.deepcopy(config)
+    for i in range(cols):
+        for j in range(rows):
+            updated_config[i][j] = config[i][3-j]
+    return updated_config
+
+def hash_state(config, vertical, horizontal):
+    # Replace all vertical squares by 'v' and all horizontal squares by 'h'
+    updated_config = copy.deepcopy(config)
+    for i in range(5):
+        for j in range(4):
+            if updated_config[i][j] in vertical:
+                updated_config[i][j] = 'v'
+            elif updated_config[i][j] in horizontal:
+                updated_config[i][j] = 'h'
+    
+    return updated_config
+
+# checks whether state is a goal state
+def is_goal(state):
+    return state[4][1] == '1' and state[4][2] == '1'
+
 # Output the dfs file
 with open(dfs_filename, "w" ) as dfs_f:
     print("Hey", file=dfs_f)
@@ -273,17 +321,7 @@ with open(dfs_filename, "w" ) as dfs_f:
 with open(astar_filename, "w") as astar_f:
     print("Hello", file=astar_f)
 
-vertical_pieces_list = vertical_pieces(puzzle)
-print(vertical_pieces_list)
-
-horizontal_pieces_list = horizontal_pieces(puzzle, vertical_pieces_list)
-print(horizontal_pieces_list)
-
-print(manhattan_distance(puzzle))
-
 end_time = time.time()
 final_time = end_time - start_time
 
 print(final_time)
-print(empty_space_locater(puzzle))
-print(successor_nodes(puzzle, vertical_pieces_list, horizontal_pieces_list))
