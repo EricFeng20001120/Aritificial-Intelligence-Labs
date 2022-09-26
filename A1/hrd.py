@@ -1,4 +1,3 @@
-import re
 import sys
 import time
 import copy
@@ -87,29 +86,11 @@ def manhattan_distance(config):
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
     manhattan_cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
 
-    '''# find displaced blocks for following Manhattan
-    for y in range(leftmost_y_pos, 3):
-        if config[y+2][leftmost_x_pos] != '0':
-            manhattan_cost += 1
-        if config[y+2][leftmost_x_pos+1] != '0':
-            manhattan_cost += 1
-            
-    if leftmost_x_pos == 0:
-        if config[3][2] != '0':
-            manhattan_cost += 1
-        if config[4][2] != '0':
-            manhattan_cost += 1
-    if leftmost_x_pos == 2:
-        if config[3][1] != '0':
-            manhattan_cost += 1
-        if config[4][1] != '0':
-            manhattan_cost += 1'''
-
     return manhattan_cost
 
 # Successor function which examines every possibility with the empty squares
 def successor_nodes(config, vertical, horizontal):
-    path = []
+    successor = []
     # Get coordinates for empty spaces
     first_x, first_y, second_x, second_y = empty_space_locater(config)
 
@@ -120,13 +101,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[first_y][first_x - 2] = '0'
             updated_config[first_y][first_x] = config[first_y][first_x - 1]
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[first_y][first_x - 1] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[first_y][first_x - 1] = '0'
             updated_config[first_y][first_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
     # Right side
     if first_x < 3:
@@ -134,13 +115,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[first_y][first_x + 2] = '0'
             updated_config[first_y][first_x] = config[first_y][first_x + 1]
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[first_y][first_x + 1] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[first_y][first_x + 1] = '0'
             updated_config[first_y][first_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
     # Top
     if first_y > 0:
@@ -148,13 +129,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[first_y - 2][first_x] = '0'
             updated_config[first_y][first_x] = config[first_y - 1][first_x]
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[first_y - 1][first_x] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[first_y - 1][first_x] = '0'
             updated_config[first_y][first_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
     # Bottom
     if first_y < 4:
@@ -162,13 +143,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[first_y + 2][first_x] = '0'
             updated_config[first_y][first_x] = config[first_y + 1][first_x]
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[first_y + 1][first_x] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[first_y + 1][first_x] = '0'
             updated_config[first_y][first_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
     # Find successor moves for the second possible square
     # Left side
@@ -177,13 +158,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x] = config[second_y][second_x - 1]
             updated_config[second_y][second_x - 2] = '0'
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[second_y][second_x - 1] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x - 1] = '0'
             updated_config[second_y][second_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
         
         # If the square is the same as the first empty square
         elif config[second_y][second_x - 1] == '0':
@@ -195,7 +176,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y][second_x - 1] = '1'
                         updated_config[second_y - 2][second_x - 1] = '0'
                         updated_config[second_y - 2][second_x] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
 
                 elif config[second_y - 1][second_x] in horizontal:
                     if config[second_x - 1][second_x - 1] == config[second_y - 1][second_x]:
@@ -204,7 +185,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y][second_x - 1] = config[second_y - 1][second_x]
                         updated_config[second_y - 1][second_x - 1] = '0'
                         updated_config[second_y - 1][second_y] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
 
     # Right side
     if second_x < 3:
@@ -212,13 +193,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x] = config[second_y][second_x + 1]
             updated_config[second_y][second_x + 2] = '0'
-            path.append(updated_config)
+            successor.append(updated_config)
         
         elif config[second_y][second_x + 1] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x + 1] = '0'
             updated_config[second_y][second_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
     # Top
     if second_y > 0:
@@ -226,13 +207,13 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x] = config[second_y - 1][second_x]
             updated_config[second_y - 2][second_x] = '0'
-            path.append(updated_config)
+            successor.append(updated_config)
 
         elif config[second_y - 1][second_x] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[second_y - 1][second_x] = '0'
             updated_config[second_y][second_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
         elif config[second_y - 1][second_x] == '0':
             if second_x > 0:
@@ -243,7 +224,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y - 1][second_x] = '1'
                         updated_config[second_y - 1][second_x - 2] = '0'
                         updated_config[second_y][second_x - 2] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
                 elif config[second_y][second_x - 1] in vertical:
                     if config[second_y - 1][second_x - 1] == config[second_y][second_x - 1]:
                         updated_config = copy.deepcopy(config)
@@ -251,7 +232,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y - 1][second_x] = config[second_y][second_x - 1]
                         updated_config[second_y - 1][second_x - 1] = '0'
                         updated_config[second_y][second_x - 1] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
 
             if second_x < 3:
                 if config[second_y][second_x + 1] == '1':
@@ -261,7 +242,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y - 1][second_x] = '1'
                         updated_config[second_y - 1][second_x + 2] = '0'
                         updated_config[second_y][second_x + 2] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
                 elif config[second_y][second_x + 1] in vertical:
                     if config[second_y - 1][second_x + 1] == config[second_y][second_x + 1]:
                         updated_config = copy.deepcopy(config)
@@ -269,7 +250,7 @@ def successor_nodes(config, vertical, horizontal):
                         updated_config[second_y - 1][second_x] = config[second_y][second_x + 1]
                         updated_config[second_y - 1][second_x + 1] = '0'
                         updated_config[second_y][second_x + 1] = '0'
-                        path.append(updated_config)
+                        successor.append(updated_config)
 
     # Bottom
     if second_y < 4:
@@ -277,14 +258,14 @@ def successor_nodes(config, vertical, horizontal):
             updated_config = copy.deepcopy(config)
             updated_config[second_y][second_x] = config[second_y + 1][second_x]
             updated_config[second_y + 2][second_x] = '0'
-            path.append(updated_config)
+            successor.append(updated_config)
         elif config[second_y + 1][second_x] == '7':
             updated_config = copy.deepcopy(config)
             updated_config[second_y + 1][second_x] = '0'
             updated_config[second_y][second_x] = '7'
-            path.append(updated_config)
+            successor.append(updated_config)
 
-    return path
+    return successor
 
 vertical_pieces_list = vertical_pieces(puzzle)
 
@@ -308,6 +289,32 @@ def hash_state(config, vertical, horizontal):
                 updated_config[i][j] = 'h'
     
     return updated_config
+
+# A* Algorithm
+def astar(config, vertical, horizontal):
+    
+    # Integer to track how many nodes have been explored
+    nodes_num = 1
+
+    # Initialize frontier, a set of frontier nodes, and a set of explored nodes
+    frontier = []
+    frontier_set = set()
+    explore_set = set()
+
+    # Path to actual solution
+    solution = []
+    solution.append(config)
+
+    # Get the costs
+    heuristic = manhattan_distance(config)
+    cost = len(solution) - 1
+
+    heapq.heappush(frontier, (cost + heuristic, solution))
+    frontier_set.add(str(hash_state(config, vertical_pieces_list, horizontal_pieces_list)))
+    
+    # Return no solution in the case that no path was found
+    return 'No Solution'
+
 
 # checks whether state is a goal state
 def is_goal(state):
