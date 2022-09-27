@@ -2,6 +2,7 @@ import sys
 import time
 import copy
 import heapq
+from turtle import pu
 
 start_time = time.time()
 
@@ -84,188 +85,228 @@ def manhattan_distance(config):
     # Get the top and leftmost location from Cao Cao
     leftmost_x_pos, leftmost_y_pos = index_of_ones[0][1], index_of_ones[0][0]
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
-    manhattan_cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
+    cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
+    '''# find displaced blocks for following Manhattan
+    for y in range(leftmost_y_pos, 3):
+        if config[y+2][leftmost_x_pos] != '0':
+            cost += 1
+        if config[y+2][leftmost_x_pos+1] != '0':
+            cost += 1
+            
+    if leftmost_x_pos == 0:
+        if config[3][2] != '0':
+            cost += 1
+        if config[4][2] != '0':
+            cost += 1
+    if leftmost_x_pos == 2:
+        if config[3][1] != '0':
+            cost += 1
+        if config[4][1] != '0':
+            cost += 1'''
+    return cost
 
-    return manhattan_cost
+def get_successor(config, vertical, horizontal):
 
-# Successor function which examines every possibility with the empty squares
-def successor_nodes(config, vertical, horizontal):
-    successor = []
-    # Get coordinates for empty spaces
+    path = []
+    
     first_x, first_y, second_x, second_y = empty_space_locater(config)
-
-    # Find successor moves for the first possible square
-    # Left side
+    
+    # Find successors for the first empty square
+    # Left
     if first_x > 0:
+        # Horizontal piece check
         if config[first_y][first_x - 1] in horizontal:
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y][first_x - 2] = '0'
-            updated_config[first_y][first_x] = config[first_y][first_x - 1]
-            successor.append(updated_config)
-        
+            new_state = copy.deepcopy(config)
+            new_state[first_y][first_x - 2] = '0'
+            new_state[first_y][first_x] = config[first_y][first_x - 1]
+            path.append(new_state)
+        # Single square check
         elif config[first_y][first_x - 1] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y][first_x - 1] = '0'
-            updated_config[first_y][first_x] = '7'
-            successor.append(updated_config)
-
-    # Right side
+            new_state = copy.deepcopy(config)
+            new_state[first_y][first_x - 1] = '0'
+            new_state[first_y][first_x] = '7'
+            path.append(new_state)
+    
+    # Right
     if first_x < 3:
+        # Horizontal piece check
         if config[first_y][first_x + 1] in horizontal:
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y][first_x + 2] = '0'
-            updated_config[first_y][first_x] = config[first_y][first_x + 1]
-            successor.append(updated_config)
-        
+            new_state = copy.deepcopy(config)
+            new_state[first_y][first_x + 2] = '0'
+            new_state[first_y][first_x] = config[first_y][first_x + 1]
+            path.append(new_state)
+        # Single square check
         elif config[first_y][first_x + 1] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y][first_x + 1] = '0'
-            updated_config[first_y][first_x] = '7'
-            successor.append(updated_config)
-
+            new_state = copy.deepcopy(config)
+            new_state[first_y][first_x + 1] = '0'
+            new_state[first_y][first_x] = '7'
+            path.append(new_state)
+    
     # Top
     if first_y > 0:
+        # Vertical piece check
         if config[first_y - 1][first_x] in vertical:
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y - 2][first_x] = '0'
-            updated_config[first_y][first_x] = config[first_y - 1][first_x]
-            successor.append(updated_config)
-        
+            new_state = copy.deepcopy(config)
+            new_state[first_y - 2][first_x] = '0'
+            new_state[first_y][first_x] = config[first_y - 1][first_x]
+            path.append(new_state)
+        # Single square check
         elif config[first_y - 1][first_x] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y - 1][first_x] = '0'
-            updated_config[first_y][first_x] = '7'
-            successor.append(updated_config)
-
+            new_state = copy.deepcopy(config)
+            new_state[first_y - 1][first_x] = '0'
+            new_state[first_y][first_x] = '7'
+            path.append(new_state)
+    
     # Bottom
     if first_y < 4:
+        # Vertical piece check
         if config[first_y + 1][first_x] in vertical:
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y + 2][first_x] = '0'
-            updated_config[first_y][first_x] = config[first_y + 1][first_x]
-            successor.append(updated_config)
-        
+            new_state = copy.deepcopy(config)
+            new_state[first_y + 2][first_x] = '0'
+            new_state[first_y][first_x] = config[first_y + 1][first_x]
+            path.append(new_state)
+        # Single square check
         elif config[first_y + 1][first_x] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[first_y + 1][first_x] = '0'
-            updated_config[first_y][first_x] = '7'
-            successor.append(updated_config)
-
-    # Find successor moves for the second possible square
-    # Left side
+            new_state = copy.deepcopy(config)
+            new_state[first_y + 1][first_x] = '0'
+            new_state[first_y][first_x] = '7'
+            path.append(new_state)
+    
+    # Find successors for the second empty square
+    # Left
     if second_x > 0:
+        # Horizontal piece check
         if config[second_y][second_x - 1] in horizontal:
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x] = config[second_y][second_x - 1]
-            updated_config[second_y][second_x - 2] = '0'
-            successor.append(updated_config)
-        
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x] = config[second_y][second_x - 1]
+            new_state[second_y][second_x - 2] = '0'
+            path.append(new_state)
+        # Single square check
         elif config[second_y][second_x - 1] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x - 1] = '0'
-            updated_config[second_y][second_x] = '7'
-            successor.append(updated_config)
-        
-        # If the square is the same as the first empty square
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x - 1] = '0'
+            new_state[second_y][second_x] = '7'
+            path.append(new_state)
+        # First empty square check
         elif config[second_y][second_x - 1] == '0':
+            if second_y < 4:
+                if config[second_y + 1][second_x] in horizontal:
+                    if config[second_y + 1][second_x] == config[second_y + 1][second_x - 1]:
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = config[second_y + 1][second_x]
+                        new_state[second_y][second_x-1] = config[second_y + 1][second_x]
+                        new_state[second_y + 1][second_x] = '0'
+                        new_state[second_y + 1][second_x - 1] = '0'
+                        path.append(new_state)
+                elif config[second_y + 1][second_x] == '1':
+                    if config[second_y + 1][second_x - 1] == '1':
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = '1'
+                        new_state[second_y][second_x - 1] = '1'
+                        new_state[second_y+2][second_x] = '0'
+                        new_state[second_y+2][second_x - 1] = '0'
+                        path.append(new_state)
+
             if second_y > 0:
                 if config[second_y - 1][second_x] == '1':
                     if config[second_y - 1][second_x - 1] == '1':
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = '1'
-                        updated_config[second_y][second_x - 1] = '1'
-                        updated_config[second_y - 2][second_x - 1] = '0'
-                        updated_config[second_y - 2][second_x] = '0'
-                        successor.append(updated_config)
-
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = '1'
+                        new_state[second_y][second_x - 1] = '1'
+                        new_state[second_y - 2][second_x - 1] = '0'
+                        new_state[second_y - 2][second_x] = '0'
+                        path.append(new_state)
                 elif config[second_y - 1][second_x] in horizontal:
-                    if config[second_x - 1][second_x - 1] == config[second_y - 1][second_x]:
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = config[second_y - 1][second_x]
-                        updated_config[second_y][second_x - 1] = config[second_y - 1][second_x]
-                        updated_config[second_y - 1][second_x - 1] = '0'
-                        updated_config[second_y - 1][second_y] = '0'
-                        successor.append(updated_config)
+                    if config[second_y - 1][second_x - 1] == config[second_y - 1][second_x]:
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = config[second_y - 1][second_x]
+                        new_state[second_y][second_x - 1] = config[second_y - 1][second_x]
+                        new_state[second_y - 1][second_x - 1] = '0'
+                        new_state[second_y - 1][second_x] = '0'
+                        path.append(new_state)
 
-    # Right side
+    # Right
     if second_x < 3:
-        if config[second_y][second_x+1] in horizontal:
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x] = config[second_y][second_x + 1]
-            updated_config[second_y][second_x + 2] = '0'
-            successor.append(updated_config)
-        
-        elif config[second_y][second_x + 1] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x + 1] = '0'
-            updated_config[second_y][second_x] = '7'
-            successor.append(updated_config)
+        # Single square check
+        if config[second_y][second_x + 1] == '7':
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x + 1] = '0'
+            new_state[second_y][second_x] = '7'
+            path.append(new_state)
+        # Horizontal piece check
+        elif config[second_y][second_x + 1] in horizontal:
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x] = config[second_y][second_x + 1]
+            new_state[second_y][second_x + 2] = '0'
+            path.append(new_state)
 
     # Top
     if second_y > 0:
+        # Vertical piece check
         if config[second_y - 1][second_x] in vertical:
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x] = config[second_y - 1][second_x]
-            updated_config[second_y - 2][second_x] = '0'
-            successor.append(updated_config)
-
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x] = config[second_y - 1][second_x]
+            new_state[second_y - 2][second_x] = '0'
+            path.append(new_state)
+        # Single square check
         elif config[second_y - 1][second_x] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y - 1][second_x] = '0'
-            updated_config[second_y][second_x] = '7'
-            successor.append(updated_config)
-
+            new_state = copy.deepcopy(config)
+            new_state[second_y - 1][second_x] = '0'
+            new_state[second_y][second_x] = '7'
+            path.append(new_state)
+        # First empty square check
         elif config[second_y - 1][second_x] == '0':
-            if second_x > 0:
-                if config[second_y][second_x - 1] == '1':
-                    if config[second_y - 1][second_x - 1] == '1':
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = '1'
-                        updated_config[second_y - 1][second_x] = '1'
-                        updated_config[second_y - 1][second_x - 2] = '0'
-                        updated_config[second_y][second_x - 2] = '0'
-                        successor.append(updated_config)
-                elif config[second_y][second_x - 1] in vertical:
-                    if config[second_y - 1][second_x - 1] == config[second_y][second_x - 1]:
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = config[second_y][second_x - 1]
-                        updated_config[second_y - 1][second_x] = config[second_y][second_x - 1]
-                        updated_config[second_y - 1][second_x - 1] = '0'
-                        updated_config[second_y][second_x - 1] = '0'
-                        successor.append(updated_config)
-
             if second_x < 3:
                 if config[second_y][second_x + 1] == '1':
                     if config[second_y - 1][second_x + 1] == '1':
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = '1'
-                        updated_config[second_y - 1][second_x] = '1'
-                        updated_config[second_y - 1][second_x + 2] = '0'
-                        updated_config[second_y][second_x + 2] = '0'
-                        successor.append(updated_config)
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = '1'
+                        new_state[second_y - 1][second_x] = '1'
+                        new_state[second_y - 1][second_x + 2] = '0'
+                        new_state[second_y][second_x + 2] = '0'
+                        path.append(new_state)
                 elif config[second_y][second_x + 1] in vertical:
                     if config[second_y - 1][second_x + 1] == config[second_y][second_x + 1]:
-                        updated_config = copy.deepcopy(config)
-                        updated_config[second_y][second_x] = config[second_y][second_x + 1]
-                        updated_config[second_y - 1][second_x] = config[second_y][second_x + 1]
-                        updated_config[second_y - 1][second_x + 1] = '0'
-                        updated_config[second_y][second_x + 1] = '0'
-                        successor.append(updated_config)
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = config[second_y][second_x + 1]
+                        new_state[second_y - 1][second_x] = config[second_y][second_x + 1]
+                        new_state[second_y - 1][second_x + 1] = '0'
+                        new_state[second_y][second_x + 1] = '0'
+                        path.append(new_state)
+            if second_x > 0:
+                if config[second_y][second_x - 1] == '1':
+                    if config[second_y - 1][second_x - 1] == '1':
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = '1'
+                        new_state[second_y - 1][second_x] = '1'
+                        new_state[second_y - 1][second_x - 2] = '0'
+                        new_state[second_y][second_x - 2] = '0'
+                        path.append(new_state)
+                elif config[second_y][second_x - 1] in vertical:
+                    if config[second_y - 1][second_x - 1] == config[second_y][second_x - 1]:
+                        new_state = copy.deepcopy(config)
+                        new_state[second_y][second_x] = config[second_y][second_x - 1]
+                        new_state[second_y-1][second_x] = config[second_y][second_x - 1]
+                        new_state[second_y-1][second_x - 1] = '0'
+                        new_state[second_y][second_x - 1] = '0'
+                        path.append(new_state)
 
     # Bottom
     if second_y < 4:
+        # Vertical piece check
         if config[second_y + 1][second_x] in vertical:
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y][second_x] = config[second_y + 1][second_x]
-            updated_config[second_y + 2][second_x] = '0'
-            successor.append(updated_config)
+            new_state = copy.deepcopy(config)
+            new_state[second_y][second_x] = config[second_y + 1][second_x]
+            new_state[second_y + 2][second_x] = '0'
+            path.append(new_state)
+        # Single square check
         elif config[second_y + 1][second_x] == '7':
-            updated_config = copy.deepcopy(config)
-            updated_config[second_y + 1][second_x] = '0'
-            updated_config[second_y][second_x] = '7'
-            successor.append(updated_config)
-
-    return successor
+            new_state = copy.deepcopy(config)
+            new_state[second_y + 1][second_x] = '0'
+            new_state[second_y][second_x] = '7'
+            path.append(new_state)
+                        
+    return path
 
 vertical_pieces_list = vertical_pieces(puzzle)
 
@@ -290,8 +331,12 @@ def hash_state(config, vertical, horizontal):
     
     return updated_config
 
+# checks whether state is a goal state
+def is_goal(state):
+    return state[4][1] == '1' and state[4][2] == '1'
+
 # A* Algorithm
-def astar(config, vertical, horizontal):
+def astar(config, vertical_pieces_list, horizontal_pieces_list):
     
     # Integer to track how many nodes have been explored
     nodes_num = 1
@@ -311,14 +356,38 @@ def astar(config, vertical, horizontal):
 
     heapq.heappush(frontier, (cost + heuristic, solution))
     frontier_set.add(str(hash_state(config, vertical_pieces_list, horizontal_pieces_list)))
+
+    # Enter a while loop until frontier isn't empty
+    while frontier:
+        # Select and remove state curr from Frontier
+        curr = heapq.heappop(frontier)
+        n_k = curr[-1][-1]
+        nodes_num += 1
+
+        hashed_n_k = str(hash_state(n_k, vertical_pieces_list, horizontal_pieces_list))
+        print(hashed_n_k)
+
+        if hashed_n_k not in explore_set:
+            # Add the state to the explore set
+            explore_set.add(hashed_n_k)
+            # If curr is the goal state, return curr
+            if n_k[4][1] == '1' and n_k[4][2] == '1':
+                return solution, nodes_num
+            # check all neighbour states
+            for i in get_successor(n_k, vertical_pieces_list, horizontal_pieces_list):
+                hashed_i = hash_state(i, vertical_pieces_list, horizontal_pieces_list)
     
+                if str(hashed_i) not in frontier_set:
+                    frontier_set.add(str(hashed_i))
+                    frontier_set.add(str(reflection(hashed_i)))
+                    solution = copy.copy(curr[-1])
+                    solution.append(i)
+                    heuristic = manhattan_distance(i)
+                    cost = len(solution)-1
+                    heapq.heappush(frontier, (heuristic + cost, solution))
+    print (nodes_num)
     # Return no solution in the case that no path was found
     return 'No Solution'
-
-
-# checks whether state is a goal state
-def is_goal(state):
-    return state[4][1] == '1' and state[4][2] == '1'
 
 # Output the dfs file
 with open(dfs_filename, "w" ) as dfs_f:
@@ -332,3 +401,4 @@ end_time = time.time()
 final_time = end_time - start_time
 
 print(final_time)
+print(astar(puzzle, vertical_pieces_list, horizontal_pieces_list))
