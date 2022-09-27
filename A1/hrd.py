@@ -331,6 +331,53 @@ def updated_puzzle(config, vertical, horizontal):
     
     return updated_config
 
+# Depth first search algorithm
+def dfs(config, vertical_pieces_list, horizontal_pieces_list):
+    # Integer to track how many nodes have been explored
+    nodes_num = 1
+
+    # Initialize frontier, a set of frontier nodes, and a set of explored nodes
+    frontier = []
+    frontier_set = set()
+    explore_set = set()
+
+    # Path to actual solution
+    solution = []
+    solution.append(config)
+
+    frontier.append(solution)
+    frontier_set.add(str(updated_puzzle(config, vertical_pieces_list, horizontal_pieces_list)))
+
+    # Enter a while loop until frontier isn't empty
+    while frontier:
+        # Select and remove state curr from Frontier
+        nodes_num += 1
+        curr = frontier.pop()
+        nodes = curr[-1]
+        nodes_h = str(updated_puzzle(nodes, vertical_pieces_list, horizontal_pieces_list))
+
+        if nodes_h not in explore_set:
+            # Add the state to the explore set
+            explore_set.add(nodes_h)
+            
+            # If curr is the goal state, return curr
+            if nodes[4][1] == '1' and nodes[4][2] == '1':
+                return curr
+            
+            # Successor possibilities
+            for i in get_successor(nodes, vertical_pieces_list, horizontal_pieces_list):
+                hashed_i = updated_puzzle(i, vertical_pieces_list, horizontal_pieces_list)
+                if str(hashed_i) not in frontier_set:
+                    frontier_set.add(str(hashed_i))
+                    frontier_set.add(str(reflection(hashed_i)))
+                    solution = copy.copy(curr)
+                    solution.append(i)
+
+                    frontier.append(solution)
+
+    # Return no solution in the case that no path was found
+    return 'No Solution'
+
 # A* Algorithm
 def astar(config, vertical_pieces_list, horizontal_pieces_list):
     
@@ -384,27 +431,48 @@ def astar(config, vertical_pieces_list, horizontal_pieces_list):
     # Return no solution in the case that no path was found
     return 'No Solution'
 
-astar_soln = astar(puzzle, vertical_pieces_list, horizontal_pieces_list)
-a_star_cost = len(astar_soln[1])-1
+dfs_solution = dfs(puzzle, vertical_pieces_list, horizontal_pieces_list)
+dfs_cost = len(dfs_solution)-1
+
+astar_solution = astar(puzzle, vertical_pieces_list, horizontal_pieces_list)
+astar_cost = len(astar_solution[1])-1
 
 # Output the dfs file
 dfs_f = open(dfs_filename, "w")
-dfs_f.write("Cost of solution: ")
+dfs_f.write("Cost of solution: " + str(dfs_cost))
+for x in range (len(dfs_solution)):
+    dfs_f.write("\n")
+    for i in range(cols):
+        for j in range(rows):
+            # Update to 3 if it is a vertical piece
+            if str(dfs_solution[x][i][j]) in vertical_pieces_list:
+                dfs_solution[x][i][j] = '3'
+            # Update to 2 if it is a horizontal piece
+            elif str(dfs_solution[x][i][j]) in horizontal_pieces_list:
+                dfs_solution[x][i][j] = '2'
+            # Update to 4 if it is a singular piece
+            elif str(dfs_solution[x][i][j]) not in ['0', '1']:
+                dfs_solution[x][i][j] = '4'
+            dfs_f.write((str(dfs_solution[x][i][j])))
+        dfs_f.write("\n")
 
 # Output the A* file
 astar_f = open(astar_filename, "w")
-astar_f.write("Cost of solution: " + str(a_star_cost))
-for x in range(len(astar_soln[1])):
+astar_f.write("Cost of solution: " + str(astar_cost))
+for x in range(len(astar_solution[1])):
     astar_f.write("\n")
-    for i in range(5):
-        for j in range(4):
-            if str(astar_soln[1][x][i][j]) in vertical_pieces_list:
-                astar_soln[1][x][i][j] = '3' 
-            elif str(astar_soln[1][x][i][j]) in horizontal_pieces_list:
-                astar_soln[1][x][i][j] = '2'
-            elif str(astar_soln[1][x][i][j]) not in ['0', '1']:
-                astar_soln[1][x][i][j] = '4'
-            astar_f.write((str(astar_soln[1][x][i][j])))
+    for i in range(cols):
+        for j in range(rows):
+            # Update to 3 if it is a vertical piece
+            if str(astar_solution[1][x][i][j]) in vertical_pieces_list:
+                astar_solution[1][x][i][j] = '3'
+            # Update to 2 if it is a horizontal piece 
+            elif str(astar_solution[1][x][i][j]) in horizontal_pieces_list:
+                astar_solution[1][x][i][j] = '2'
+            # Update to 4 if it is a singular piece
+            elif str(astar_solution[1][x][i][j]) not in ['0', '1']:
+                astar_solution[1][x][i][j] = '4'
+            astar_f.write((str(astar_solution[1][x][i][j])))
         astar_f.write("\n")
 
 end_time = time.time()
