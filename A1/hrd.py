@@ -319,7 +319,7 @@ def reflection(config):
             updated_config[i][j] = config[i][3-j]
     return updated_config
 
-def hash_state(config, vertical, horizontal):
+def updated_puzzle(config, vertical, horizontal):
     # Replace all vertical squares by 'v' and all horizontal squares by 'h'
     updated_config = copy.deepcopy(config)
     for i in range(5):
@@ -330,10 +330,6 @@ def hash_state(config, vertical, horizontal):
                 updated_config[i][j] = 'h'
     
     return updated_config
-
-# checks whether state is a goal state
-def is_goal(state):
-    return state[4][1] == '1' and state[4][2] == '1'
 
 # A* Algorithm
 def astar(config, vertical_pieces_list, horizontal_pieces_list):
@@ -355,28 +351,27 @@ def astar(config, vertical_pieces_list, horizontal_pieces_list):
     cost = len(solution) - 1
 
     heapq.heappush(frontier, (cost + heuristic, solution))
-    frontier_set.add(str(hash_state(config, vertical_pieces_list, horizontal_pieces_list)))
+    frontier_set.add(str(updated_puzzle(config, vertical_pieces_list, horizontal_pieces_list)))
 
     # Enter a while loop until frontier isn't empty
     while frontier:
         # Select and remove state curr from Frontier
-        curr = heapq.heappop(frontier)
-        n_k = curr[-1][-1]
         nodes_num += 1
+        curr = heapq.heappop(frontier)
+        nodes = curr[-1][-1]
+        nodes_h = str(updated_puzzle(nodes, vertical_pieces_list, horizontal_pieces_list))
 
-        hashed_n_k = str(hash_state(n_k, vertical_pieces_list, horizontal_pieces_list))
-        print(hashed_n_k)
-
-        if hashed_n_k not in explore_set:
+        if nodes_h not in explore_set:
             # Add the state to the explore set
-            explore_set.add(hashed_n_k)
+            explore_set.add(nodes_h)
+            
             # If curr is the goal state, return curr
-            if n_k[4][1] == '1' and n_k[4][2] == '1':
-                return solution, nodes_num
-            # check all neighbour states
-            for i in get_successor(n_k, vertical_pieces_list, horizontal_pieces_list):
-                hashed_i = hash_state(i, vertical_pieces_list, horizontal_pieces_list)
-    
+            if nodes[4][1] == '1' and nodes[4][2] == '1':
+                return curr
+            
+            # Successor possibilities
+            for i in get_successor(nodes, vertical_pieces_list, horizontal_pieces_list):
+                hashed_i = updated_puzzle(i, vertical_pieces_list, horizontal_pieces_list)
                 if str(hashed_i) not in frontier_set:
                     frontier_set.add(str(hashed_i))
                     frontier_set.add(str(reflection(hashed_i)))
@@ -385,20 +380,33 @@ def astar(config, vertical_pieces_list, horizontal_pieces_list):
                     heuristic = manhattan_distance(i)
                     cost = len(solution)-1
                     heapq.heappush(frontier, (heuristic + cost, solution))
-    print (nodes_num)
+
     # Return no solution in the case that no path was found
     return 'No Solution'
 
+astar_soln = astar(puzzle, vertical_pieces_list, horizontal_pieces_list)
+a_star_cost = len(astar_soln[1])-1
+
 # Output the dfs file
-with open(dfs_filename, "w" ) as dfs_f:
-    print("Hey", file=dfs_f)
- 
+dfs_f = open(dfs_filename, "w")
+dfs_f.write("Cost of solution: ")
+
 # Output the A* file
-with open(astar_filename, "w") as astar_f:
-    print("Hello", file=astar_f)
+astar_f = open(astar_filename, "w")
+astar_f.write("Cost of solution: " + str(a_star_cost))
+for x in range(len(astar_soln[1])):
+    astar_f.write("\n")
+    for i in range(5):
+        for j in range(4):
+            if str(astar_soln[1][x][i][j]) in vertical_pieces_list:
+                astar_soln[1][x][i][j] = '3' 
+            elif str(astar_soln[1][x][i][j]) in horizontal_pieces_list:
+                astar_soln[1][x][i][j] = '2'
+            elif str(astar_soln[1][x][i][j]) not in ['0', '1']:
+                astar_soln[1][x][i][j] = '4'
+            astar_f.write((str(astar_soln[1][x][i][j])))
+        astar_f.write("\n")
 
 end_time = time.time()
 final_time = end_time - start_time
-
 print(final_time)
-print(astar(puzzle, vertical_pieces_list, horizontal_pieces_list))
