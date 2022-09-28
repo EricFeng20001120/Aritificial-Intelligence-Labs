@@ -82,33 +82,49 @@ def horizontal_pieces(config, vertical_pieces_list):
 def manhattan_distance(config):
     # Find indices of the Cao Cao piece
     index_of_ones = coordinates_locater('1', config)
-    # Get the top and leftmost location from Cao Cao
+    # Get the top and rightmost location from Cao Cao
     bottom_left_x_pos, bottom_left_y_pos = index_of_ones[2][1], index_of_ones[2][0]
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
-    cost = abs(1-bottom_left_x_pos) + (4-bottom_left_y_pos)
-    '''# find displaced blocks for following Manhattan
-    for y in range(leftmost_y_pos, 3):
-        if config[y+2][leftmost_x_pos] != '0':
-            cost += 1
-        if config[y+2][leftmost_x_pos+1] != '0':
-            cost += 1
-            
-    if leftmost_x_pos == 0:
+    manhattan_cost = abs(1-bottom_left_x_pos) + (4-bottom_left_y_pos)
+    return manhattan_cost
+
+print(manhattan_distance(puzzle))
+
+# Original heuristic function implementation
+def heuristic(config):
+    # Find indices of the Cao Cao piece
+    index_of_ones = coordinates_locater('1', config)
+    # Get the top and rightmost location from Cao Cao
+    bottom_left_x_pos, bottom_left_y_pos = index_of_ones[2][1], index_of_ones[2][0]
+    # Find Manhattan cost
+    total_cost = manhattan_distance(config)
+
+    if bottom_left_x_pos == 0:
         if config[3][2] != '0':
-            cost += 1
+            total_cost += 1
         if config[4][2] != '0':
-            cost += 1
-    if leftmost_x_pos == 2:
+            total_cost += 1
+    if bottom_left_x_pos == 2:
         if config[3][1] != '0':
-            cost += 1
+            total_cost += 1
         if config[4][1] != '0':
-            cost += 1'''
-    return cost
+            total_cost += 1
+    
+    for y in range(bottom_left_y_pos, 3):
+        if config[y + 1][bottom_left_x_pos - 1] != '0':
+            total_cost += 1
+        if config[y + 1][bottom_left_x_pos] != '0':
+            total_cost += 1
+    
+    return total_cost
 
-def get_successor(config, vertical, horizontal):
+print(heuristic(puzzle))
 
+# Successor function which examines all possibilities
+def successor_nodes(config, vertical, horizontal):
     path = []
     
+    # Find coordinates of empty squares
     first_x, first_y, second_x, second_y = empty_space_locater(config)
     
     # Find successors for the first empty square
@@ -362,7 +378,7 @@ def dfs(config, vertical_pieces_list, horizontal_pieces_list):
                 return curr
             
             # Successor possibilities
-            for i in get_successor(nodes, vertical_pieces_list, horizontal_pieces_list):
+            for i in successor_nodes(nodes, vertical_pieces_list, horizontal_pieces_list):
                 hashed_i = updated_puzzle(i, vertical_pieces_list, horizontal_pieces_list)
                 if str(hashed_i) not in frontier_set:
                     frontier_set.add(str(hashed_i))
@@ -414,7 +430,7 @@ def astar(config, vertical_pieces_list, horizontal_pieces_list):
                 return curr
             
             # Successor possibilities
-            for i in get_successor(nodes, vertical_pieces_list, horizontal_pieces_list):
+            for i in successor_nodes(nodes, vertical_pieces_list, horizontal_pieces_list):
                 hashed_i = updated_puzzle(i, vertical_pieces_list, horizontal_pieces_list)
                 if str(hashed_i) not in frontier_set:
                     frontier_set.add(str(hashed_i))
