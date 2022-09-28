@@ -6,9 +6,9 @@ from turtle import pu
 
 start_time = time.time()
 
-# Create global variables for the number of columns and rows of the board
-cols = 5
-rows = 4
+# Create global variables for the number of columns and columns of the board
+rows = 5
+columns = 4
 
 # Set the three parameters to pass in
 filename = sys.argv[1]
@@ -16,20 +16,20 @@ dfs_filename = sys.argv[2]
 astar_filename = sys.argv[3]
 
 # Create a 5x4 array to store the digits of the puzzle
-puzzle = [[] for x in range(cols)]
+puzzle = [[] for x in range(rows)]
 
 # Import the puzzle.txt file and use a nested for loop to store digits
 with open(filename) as file:
-    for i in range(cols):
-        for j in range(rows):
+    for i in range(rows):
+        for j in range(columns):
             puzzle[i].append(file.read(1))
         file.read(1)
 
 # Function that finds the coordinates of a specific digit given the configuration
 def coordinates_locater(digit, config):
     index = []
-    for i in range(cols):
-        for j in range(rows):
+    for i in range(rows):
+        for j in range(columns):
             if config[i][j] == digit:
                 index.append((i, j))
     return index
@@ -83,9 +83,9 @@ def manhattan_distance(config):
     # Find indices of the Cao Cao piece
     index_of_ones = coordinates_locater('1', config)
     # Get the top and leftmost location from Cao Cao
-    leftmost_x_pos, leftmost_y_pos = index_of_ones[0][1], index_of_ones[0][0]
+    bottom_left_x_pos, bottom_left_y_pos = index_of_ones[2][1], index_of_ones[2][0]
     # Calculate the number of steps it would take for Cao Cao to get to the bottom centre of the puzzle
-    cost = abs(1-leftmost_x_pos) + (3-leftmost_y_pos)
+    cost = abs(1-bottom_left_x_pos) + (4-bottom_left_y_pos)
     '''# find displaced blocks for following Manhattan
     for y in range(leftmost_y_pos, 3):
         if config[y+2][leftmost_x_pos] != '0':
@@ -116,218 +116,215 @@ def get_successor(config, vertical, horizontal):
     if first_x > 0:
         # Horizontal piece check
         if config[first_y][first_x - 1] in horizontal:
-            new_state = copy.deepcopy(config)
-            new_state[first_y][first_x - 2] = '0'
-            new_state[first_y][first_x] = config[first_y][first_x - 1]
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x - 2] = '0'
+            updated_config[first_y][first_x] = config[first_y][first_x - 1]
+            path.append(updated_config)
         # Single square check
         elif config[first_y][first_x - 1] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[first_y][first_x - 1] = '0'
-            new_state[first_y][first_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x - 1] = '0'
+            updated_config[first_y][first_x] = '7'
+            path.append(updated_config)
     
     # Right
     if first_x < 3:
         # Horizontal piece check
         if config[first_y][first_x + 1] in horizontal:
-            new_state = copy.deepcopy(config)
-            new_state[first_y][first_x + 2] = '0'
-            new_state[first_y][first_x] = config[first_y][first_x + 1]
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x + 2] = '0'
+            updated_config[first_y][first_x] = config[first_y][first_x + 1]
+            path.append(updated_config)
         # Single square check
         elif config[first_y][first_x + 1] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[first_y][first_x + 1] = '0'
-            new_state[first_y][first_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x + 1] = '0'
+            updated_config[first_y][first_x] = '7'
+            path.append(updated_config)
     
     # Top
     if first_y > 0:
         # Vertical piece check
         if config[first_y - 1][first_x] in vertical:
-            new_state = copy.deepcopy(config)
-            new_state[first_y - 2][first_x] = '0'
-            new_state[first_y][first_x] = config[first_y - 1][first_x]
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y - 2][first_x] = '0'
+            updated_config[first_y][first_x] = config[first_y - 1][first_x]
+            path.append(updated_config)
         # Single square check
         elif config[first_y - 1][first_x] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[first_y - 1][first_x] = '0'
-            new_state[first_y][first_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y - 1][first_x] = '0'
+            updated_config[first_y][first_x] = '7'
+            path.append(updated_config)
     
     # Bottom
     if first_y < 4:
         # Vertical piece check
         if config[first_y + 1][first_x] in vertical:
-            new_state = copy.deepcopy(config)
-            new_state[first_y + 2][first_x] = '0'
-            new_state[first_y][first_x] = config[first_y + 1][first_x]
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x] = config[first_y + 1][first_x]
+            updated_config[first_y + 2][first_x] = '0'
+            path.append(updated_config)
         # Single square check
         elif config[first_y + 1][first_x] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[first_y + 1][first_x] = '0'
-            new_state[first_y][first_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[first_y][first_x] = '7'
+            updated_config[first_y + 1][first_x] = '0'
+            path.append(updated_config)
     
     # Find successors for the second empty square
     # Left
     if second_x > 0:
         # Horizontal piece check
         if config[second_y][second_x - 1] in horizontal:
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x] = config[second_y][second_x - 1]
-            new_state[second_y][second_x - 2] = '0'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x - 2] = '0'
+            updated_config[second_y][second_x] = config[second_y][second_x - 1]
+            path.append(updated_config)
         # Single square check
         elif config[second_y][second_x - 1] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x - 1] = '0'
-            new_state[second_y][second_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x] = '7'
+            updated_config[second_y][second_x - 1] = '0'
+            path.append(updated_config)
         # First empty square check
         elif config[second_y][second_x - 1] == '0':
             if second_y < 4:
                 if config[second_y + 1][second_x] in horizontal:
                     if config[second_y + 1][second_x] == config[second_y + 1][second_x - 1]:
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = config[second_y + 1][second_x]
-                        new_state[second_y][second_x-1] = config[second_y + 1][second_x]
-                        new_state[second_y + 1][second_x] = '0'
-                        new_state[second_y + 1][second_x - 1] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y][second_x-1] = config[second_y + 1][second_x]
+                        updated_config[second_y][second_x] = config[second_y + 1][second_x]                      
+                        updated_config[second_y + 1][second_x - 1] = '0'
+                        updated_config[second_y + 1][second_x] = '0'                       
+                        path.append(updated_config)
                 elif config[second_y + 1][second_x] == '1':
                     if config[second_y + 1][second_x - 1] == '1':
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = '1'
-                        new_state[second_y][second_x - 1] = '1'
-                        new_state[second_y+2][second_x] = '0'
-                        new_state[second_y+2][second_x - 1] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y][second_x - 1] = '1'
+                        updated_config[second_y][second_x] = '1'
+                        updated_config[second_y+2][second_x - 1] = '0'
+                        updated_config[second_y+2][second_x] = '0'
+                        path.append(updated_config)
 
             if second_y > 0:
                 if config[second_y - 1][second_x] == '1':
                     if config[second_y - 1][second_x - 1] == '1':
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = '1'
-                        new_state[second_y][second_x - 1] = '1'
-                        new_state[second_y - 2][second_x - 1] = '0'
-                        new_state[second_y - 2][second_x] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y - 2][second_x - 1] = '0'
+                        updated_config[second_y - 2][second_x] = '0'
+                        updated_config[second_y][second_x] = '1'
+                        updated_config[second_y][second_x - 1] = '1'
+                        path.append(updated_config)
                 elif config[second_y - 1][second_x] in horizontal:
                     if config[second_y - 1][second_x - 1] == config[second_y - 1][second_x]:
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = config[second_y - 1][second_x]
-                        new_state[second_y][second_x - 1] = config[second_y - 1][second_x]
-                        new_state[second_y - 1][second_x - 1] = '0'
-                        new_state[second_y - 1][second_x] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y][second_x] = config[second_y - 1][second_x]
+                        updated_config[second_y][second_x - 1] = config[second_y - 1][second_x]
+                        updated_config[second_y - 1][second_x - 1] = '0'
+                        updated_config[second_y - 1][second_x] = '0'
+                        path.append(updated_config)
 
     # Right
     if second_x < 3:
         # Single square check
         if config[second_y][second_x + 1] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x + 1] = '0'
-            new_state[second_y][second_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x] = '7'
+            updated_config[second_y][second_x + 1] = '0'
+            path.append(updated_config)
         # Horizontal piece check
         elif config[second_y][second_x + 1] in horizontal:
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x] = config[second_y][second_x + 1]
-            new_state[second_y][second_x + 2] = '0'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x + 2] = '0'
+            updated_config[second_y][second_x] = config[second_y][second_x + 1]
+            path.append(updated_config)
 
     # Top
     if second_y > 0:
         # Vertical piece check
         if config[second_y - 1][second_x] in vertical:
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x] = config[second_y - 1][second_x]
-            new_state[second_y - 2][second_x] = '0'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y - 2][second_x] = '0'
+            updated_config[second_y][second_x] = config[second_y - 1][second_x]
+            path.append(updated_config)
         # Single square check
         elif config[second_y - 1][second_x] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[second_y - 1][second_x] = '0'
-            new_state[second_y][second_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x] = '7'
+            updated_config[second_y - 1][second_x] = '0'
+            path.append(updated_config)
         # First empty square check
         elif config[second_y - 1][second_x] == '0':
             if second_x < 3:
                 if config[second_y][second_x + 1] == '1':
                     if config[second_y - 1][second_x + 1] == '1':
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = '1'
-                        new_state[second_y - 1][second_x] = '1'
-                        new_state[second_y - 1][second_x + 2] = '0'
-                        new_state[second_y][second_x + 2] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y - 1][second_x + 2] = '0'
+                        updated_config[second_y][second_x + 2] = '0'
+                        updated_config[second_y][second_x] = '1'
+                        updated_config[second_y - 1][second_x] = '1'
+                        path.append(updated_config)
                 elif config[second_y][second_x + 1] in vertical:
                     if config[second_y - 1][second_x + 1] == config[second_y][second_x + 1]:
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = config[second_y][second_x + 1]
-                        new_state[second_y - 1][second_x] = config[second_y][second_x + 1]
-                        new_state[second_y - 1][second_x + 1] = '0'
-                        new_state[second_y][second_x + 1] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y - 1][second_x + 1] = '0'
+                        updated_config[second_y][second_x + 1] = '0'
+                        updated_config[second_y][second_x] = config[second_y][second_x + 1]
+                        updated_config[second_y - 1][second_x] = config[second_y][second_x + 1]
+                        path.append(updated_config)
             if second_x > 0:
                 if config[second_y][second_x - 1] == '1':
                     if config[second_y - 1][second_x - 1] == '1':
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = '1'
-                        new_state[second_y - 1][second_x] = '1'
-                        new_state[second_y - 1][second_x - 2] = '0'
-                        new_state[second_y][second_x - 2] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y - 1][second_x - 2] = '0'
+                        updated_config[second_y][second_x - 2] = '0'
+                        updated_config[second_y][second_x] = '1'
+                        updated_config[second_y - 1][second_x] = '1'
+                        path.append(updated_config)
                 elif config[second_y][second_x - 1] in vertical:
                     if config[second_y - 1][second_x - 1] == config[second_y][second_x - 1]:
-                        new_state = copy.deepcopy(config)
-                        new_state[second_y][second_x] = config[second_y][second_x - 1]
-                        new_state[second_y-1][second_x] = config[second_y][second_x - 1]
-                        new_state[second_y-1][second_x - 1] = '0'
-                        new_state[second_y][second_x - 1] = '0'
-                        path.append(new_state)
+                        updated_config = copy.deepcopy(config)
+                        updated_config[second_y-1][second_x - 1] = '0'
+                        updated_config[second_y][second_x - 1] = '0'
+                        updated_config[second_y][second_x] = config[second_y][second_x - 1]
+                        updated_config[second_y-1][second_x] = config[second_y][second_x - 1]
+                        path.append(updated_config)
 
     # Bottom
     if second_y < 4:
         # Vertical piece check
         if config[second_y + 1][second_x] in vertical:
-            new_state = copy.deepcopy(config)
-            new_state[second_y][second_x] = config[second_y + 1][second_x]
-            new_state[second_y + 2][second_x] = '0'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y + 2][second_x] = '0'
+            updated_config[second_y][second_x] = config[second_y + 1][second_x]
+            path.append(updated_config)
         # Single square check
         elif config[second_y + 1][second_x] == '7':
-            new_state = copy.deepcopy(config)
-            new_state[second_y + 1][second_x] = '0'
-            new_state[second_y][second_x] = '7'
-            path.append(new_state)
+            updated_config = copy.deepcopy(config)
+            updated_config[second_y][second_x] = '7'
+            updated_config[second_y + 1][second_x] = '0'
+            path.append(updated_config)
                         
     return path
 
-vertical_pieces_list = vertical_pieces(puzzle)
-
-horizontal_pieces_list = horizontal_pieces(puzzle, vertical_pieces_list)
-
+# Reflects the board over the vertical axis
 def reflection(config):
     updated_config = copy.deepcopy(config)
-    for i in range(cols):
-        for j in range(rows):
+    for i in range(rows):
+        for j in range(columns):
             updated_config[i][j] = config[i][3-j]
     return updated_config
 
+# Hashing
 def updated_puzzle(config, vertical, horizontal):
-    # Replace all vertical squares by 'v' and all horizontal squares by 'h'
     updated_config = copy.deepcopy(config)
     for i in range(5):
         for j in range(4):
             if updated_config[i][j] in vertical:
-                updated_config[i][j] = 'v'
+                updated_config[i][j] = 'vertical'
             elif updated_config[i][j] in horizontal:
-                updated_config[i][j] = 'h'
+                updated_config[i][j] = 'horizontal'
     
     return updated_config
 
@@ -431,49 +428,59 @@ def astar(config, vertical_pieces_list, horizontal_pieces_list):
     # Return no solution in the case that no path was found
     return 'No Solution'
 
+# Get lists of the vertical and horizontal pieces
+vertical_pieces_list = vertical_pieces(puzzle)
+horizontal_pieces_list = horizontal_pieces(puzzle, vertical_pieces_list)
+
+# Get dfs solution and cost
 dfs_solution = dfs(puzzle, vertical_pieces_list, horizontal_pieces_list)
 dfs_cost = len(dfs_solution)-1
 
+# Get A* soplution and cost
 astar_solution = astar(puzzle, vertical_pieces_list, horizontal_pieces_list)
 astar_cost = len(astar_solution[1])-1
-
-# Output the dfs file
-dfs_f = open(dfs_filename, "w")
-dfs_f.write("Cost of solution: " + str(dfs_cost))
-for x in range (len(dfs_solution)):
-    dfs_f.write("\n")
-    for i in range(cols):
-        for j in range(rows):
-            # Update to 3 if it is a vertical piece
-            if str(dfs_solution[x][i][j]) in vertical_pieces_list:
-                dfs_solution[x][i][j] = '3'
-            # Update to 2 if it is a horizontal piece
-            elif str(dfs_solution[x][i][j]) in horizontal_pieces_list:
-                dfs_solution[x][i][j] = '2'
-            # Update to 4 if it is a singular piece
-            elif str(dfs_solution[x][i][j]) not in ['0', '1']:
-                dfs_solution[x][i][j] = '4'
-            dfs_f.write((str(dfs_solution[x][i][j])))
-        dfs_f.write("\n")
 
 # Output the A* file
 astar_f = open(astar_filename, "w")
 astar_f.write("Cost of solution: " + str(astar_cost))
 for x in range(len(astar_solution[1])):
     astar_f.write("\n")
-    for i in range(cols):
-        for j in range(rows):
-            # Update to 3 if it is a vertical piece
-            if str(astar_solution[1][x][i][j]) in vertical_pieces_list:
-                astar_solution[1][x][i][j] = '3'
+    for i in range(rows):
+        for j in range(columns):
             # Update to 2 if it is a horizontal piece 
-            elif str(astar_solution[1][x][i][j]) in horizontal_pieces_list:
+            if str(astar_solution[1][x][i][j]) in horizontal_pieces_list:
                 astar_solution[1][x][i][j] = '2'
+            # Update to 3 if it is a vertical piece
+            elif str(astar_solution[1][x][i][j]) in vertical_pieces_list:
+                astar_solution[1][x][i][j] = '3'
             # Update to 4 if it is a singular piece
-            elif str(astar_solution[1][x][i][j]) not in ['0', '1']:
+            elif str(astar_solution[1][x][i][j]) == '7':
                 astar_solution[1][x][i][j] = '4'
             astar_f.write((str(astar_solution[1][x][i][j])))
         astar_f.write("\n")
+        
+# Output the dfs file
+dfs_f = open(dfs_filename, "w")
+dfs_f.write("Cost of solution: " + str(dfs_cost))
+for x in range (len(dfs_solution)):
+    dfs_f.write("\n")
+    for i in range(rows):
+        for j in range(columns):
+            # Addressing a weird edge case where the first entry isn't what's expected
+            if x == 0:
+                dfs_f.write((str(dfs_solution[x][i][j])))
+            else:
+                # Update to 2 if it is a horizontal piece
+                if str(dfs_solution[x][i][j]) in horizontal_pieces_list:
+                    dfs_solution[x][i][j] = '2'
+                # Update to 3 if it is a vertical piece
+                elif str(dfs_solution[x][i][j]) in vertical_pieces_list:
+                    dfs_solution[x][i][j] = '3'
+                # Update to 4 if it is a singular piece
+                elif str(dfs_solution[x][i][j]) == '7':
+                    dfs_solution[x][i][j] = '4'
+                dfs_f.write((str(dfs_solution[x][i][j])))
+        dfs_f.write("\n")
 
 end_time = time.time()
 final_time = end_time - start_time
