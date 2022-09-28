@@ -91,7 +91,7 @@ def manhattan_distance(config):
 print(manhattan_distance(puzzle))
 
 # Original heuristic function implementation
-def heuristic(config):
+def original_heuristic(config):
     # Find indices of the Cao Cao piece
     index_of_ones = coordinates_locater('1', config)
     # Get the top and rightmost location from Cao Cao
@@ -118,7 +118,7 @@ def heuristic(config):
     
     return total_cost
 
-print(heuristic(puzzle))
+print(original_heuristic(puzzle))
 
 # Successor function which examines all possibilities
 def successor_nodes(config, vertical, horizontal):
