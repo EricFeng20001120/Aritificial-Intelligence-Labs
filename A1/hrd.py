@@ -1,10 +1,7 @@
+# Import necessary libraries
 import sys
-import time
 import copy
 import heapq
-from turtle import pu
-
-start_time = time.time()
 
 # Create global variables for the number of columns and columns of the board
 rows = 5
@@ -88,8 +85,6 @@ def manhattan_distance(config):
     manhattan_cost = abs(1-bottom_left_x_pos) + (4-bottom_left_y_pos)
     return manhattan_cost
 
-print(manhattan_distance(puzzle))
-
 # Original heuristic function implementation
 def original_heuristic(config):
     # Find indices of the Cao Cao piece
@@ -99,26 +94,28 @@ def original_heuristic(config):
     # Find Manhattan cost
     total_cost = manhattan_distance(config)
 
+    # Check if the 2x2 is at the left edge and if the 0s are where they need to be for the 2x2 to go to the finish
     if bottom_left_x_pos == 0:
         if config[3][2] != '0':
             total_cost += 1
         if config[4][2] != '0':
             total_cost += 1
+
+    # Check if the 2x2 is at the right edge and if the 0s are where they need to be for the 2x2 to go to the finish
     if bottom_left_x_pos == 2:
         if config[3][1] != '0':
             total_cost += 1
         if config[4][1] != '0':
             total_cost += 1
     
-    for y in range(bottom_left_y_pos, 3):
-        if config[y + 1][bottom_left_x_pos - 1] != '0':
+    # Check in a for loop of the horizontal adjacency of empty spaces to the 2x2 piece and add a cost if empty space isn't there
+    for y in range(bottom_left_y_pos, 4):
+        if config[y + 1][bottom_left_x_pos + 1] != '0':
             total_cost += 1
         if config[y + 1][bottom_left_x_pos] != '0':
             total_cost += 1
     
     return total_cost
-
-print(original_heuristic(puzzle))
 
 # Successor function which examines all possibilities
 def successor_nodes(config, vertical, horizontal):
@@ -497,7 +494,3 @@ for x in range (len(dfs_solution)):
                     dfs_solution[x][i][j] = '4'
                 dfs_f.write((str(dfs_solution[x][i][j])))
         dfs_f.write("\n")
-
-end_time = time.time()
-final_time = end_time - start_time
-print(final_time)
