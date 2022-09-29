@@ -455,7 +455,7 @@ astar_cost = len(astar_solution[1])-1
 
 # Output the A* file
 astar_f = open(astar_filename, "w")
-astar_f.write("Cost of solution: " + str(astar_cost))
+astar_f.write("Cost of the solution: " + str(astar_cost))
 for x in range(len(astar_solution[1])):
     astar_f.write("\n")
     for i in range(rows):
@@ -474,7 +474,7 @@ for x in range(len(astar_solution[1])):
         
 # Output the dfs file
 dfs_f = open(dfs_filename, "w")
-dfs_f.write("Cost of solution: " + str(dfs_cost))
+dfs_f.write("Cost of the solution: " + str(dfs_cost))
 for x in range (len(dfs_solution)):
     dfs_f.write("\n")
     for i in range(rows):
