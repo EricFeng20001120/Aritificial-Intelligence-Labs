@@ -33,33 +33,111 @@ def coordinates_locater(piece, config):
 def jump(board, player):
     path = []
     player_piece = coordinates_locater(player, board)
-    print("Red piece coordinates: " + str(player_piece))
 
     # Create successors for the player piece
     for i in player_piece:
+        y, x = i[0], i[1]
         if player == 'r':
-            # Jump left
-            if i[0] <= 5 and i[1] >= 2 and board[i[0]+2][i[1]-2] == '.' and (board[i[0]+1][i[1]-1] == 'b' or board[i[0]+1][i[1]-1] == 'B'):
+            # Upper right jump
+            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
                 new_board = copy.deepcopy(board)
-                new_board[i[0]][i[1]] = '.'
-                new_board[i[0]+1][i[1]-1] = '.'
-                if i[0] == 5:
-                    new_board[i[0]+2][i[1]-2] = 'R'
-                else: 
-                    new_board[i[0]+2][i[1]-2] = 'r'
+                new_board[y][x] = '.'
+                new_board[y-1][x+1] = '.'
+                if y == 2:
+                    new_board[y-2][x+2] = 'R'
+                else:
+                    new_board[y-2][x+2] = 'r'
+                path.append(new_board)
+            # Upper left jump
+            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'b' or board[y-1][x-1] == 'B') and board[y-2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y-1][x-1] = '.'
+                if y == 2:
+                    new_board[y-2][x-2] = 'R'
+                else:
+                    new_board[y-2][x-2] = 'r'
+                path.append(new_board)
+        elif player == 'b':
+            # Bottom right jump
+            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x+1] = '.'
+                if y == 5:
+                    new_board[y+2][x+2] = 'B'
+                else:
+                    new_board[y+2][x+2] = 'b'
+                path.append(new_board)
+            # Bottom left jump
+            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x-1] = '.'
+                if y == 5:
+                    new_board[y+2][x-2] = 'B'
+                else:
+                    new_board[y+2][x-2] = 'b'
+                path.append(new_board)
+        elif player == 'R':
+            # Upper right jump
+            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y-1][x+1] = '.'
+                new_board[y-2][x+2] = 'R'
+                path.append(new_board)
+            # Upper left jump
+            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'b' or board[y-1][x-1] == 'B') and board[y-2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y-1][x-1] = '.'
+                new_board[y-2][x-2] = 'R'
+                path.append(new_board)
+            # Bottom right jump
+            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'b' or board[y+1][x+1] == 'B') and board[y+2][x+2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x+1] = '.'
+                new_board[y+2][x+2] = 'R'
+                path.append(new_board)
+            # Bottom left jump
+            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'b' or board[y+1][x-1] == 'B') and board[y+2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x-1] = '.'
+                new_board[y+2][x-2] = 'R'
                 path.append(new_board)
 
-            # Jump right
-            if i[0] <= 5 and i[1] <= 5 and board[i[0]+2][i[1]+2] == '.' and (board[i[0]+1][i[1]+1] == 'b' or board[i[0]+1][i[1]+1] == 'B'):
+        elif player == 'B':
+            # Upper right jump
+            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'r' or board[y-1][x+1] == 'R') and board[y-2][x+2] == '.':
                 new_board = copy.deepcopy(board)
-                new_board[i[0]][i[1]] = '.'
-                new_board[i[0]+1][i[1]+1] = '.'
-                if i[0] == 5:
-                    new_board[i[0]+2][i[1]+2] = 'R'
-                else: 
-                    new_board[i[0]+2][i[1]+2] = 'r'
+                new_board[y][x] = '.'
+                new_board[y-1][x+1] = '.'
+                new_board[y-2][x+2] = 'B'
                 path.append(new_board)
-
+            # Upper left jump
+            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'r' or board[y-1][x-1] == 'R') and board[y-2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y-1][x-1] = '.'
+                new_board[y-2][x-2] = 'B'
+                path.append(new_board)
+            # Bottom right jump
+            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x+1] = '.'
+                new_board[y+2][x+2] = 'B'
+                path.append(new_board)
+            # Bottom left jump
+            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
+                new_board = copy.deepcopy(board)
+                new_board[y][x] = '.'
+                new_board[y+1][x-1] = '.'
+                new_board[y+2][x-2] = 'B'
+                path.append(new_board)
     return path
 
 # Successor function
@@ -179,10 +257,13 @@ def successor(board, player):
                     path.append(new_board)
     return path
 
-print(len(successor(configuration, 'r')))
+'''print(len(successor(configuration, 'r')))
 print(len(successor(configuration, 'R')))
 print(len(successor(configuration, 'b')))
-print(len(successor(configuration, 'B')))
+print(len(successor(configuration, 'B')))'''
+
+print(len(jump(configuration, 'B')))
+print(jump(configuration, 'B'))
 
 # Output the file
 output = open(output_file, "w")
