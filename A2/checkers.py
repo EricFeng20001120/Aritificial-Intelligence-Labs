@@ -29,9 +29,18 @@ def coordinates_locater(piece, config):
                 index.append((i, j))
     return index
 
+# Jump Function
+def jump(config, player):
+    new_jump = []
+    if player == 'b':
+        new_jump = [1]
+    if player == 'r':
+        new_jump = [2]
+    return new_jump
+
 # Successor function
 def successor(config):
-
+    path = []
     red_kings = coordinates_locater('R', config)
     red_pieces = coordinates_locater('r', config)
     print("Red piece coordinates: " + str(red_pieces))
@@ -41,28 +50,32 @@ def successor(config):
         # Left Diagonal jump when not becoming King
         if i[0] > 2 and i[0] < 8 and i[1] > 1 and i[1] <= 7:
             if (config[i[0]-1][i[1]-1] == 'b' or config[i[0]-1][i[1]-1] == 'B'):
-                config[i[0]-1][i[1]-1] = '.'
-                config[i[0]][i[1]] = '.'
-                config[i[0]-2][i[1]-2] = 'r'
-                break
+                updated_config = copy.deepcopy(config)
+                updated_config[i[0]-1][i[1]-1] = '.'
+                updated_config[i[0]][i[1]] = '.'
+                updated_config[i[0]-2][i[1]-2] = 'r'
+                path.append(updated_config)
             
             # Left diagonal
             elif (config[i[0]-1][i[1]-1] == '.'):
-                config[i[0]-1][i[1]-1] = 'r'
-                config[i[0]][i[1]] = '.'
-                break
+                updated_config = copy.deepcopy(config)
+                updated_config[i[0]-1][i[1]-1] = 'r'
+                updated_config[i[0]][i[1]] = '.'
+                path.append(updated_config)
         
         # Right Diagonal jump when not becoming King
         elif i[0] > 2 and i[0] < 8 and i[1] >= 0 and i[1] < 6: 
             if (config[i[0]-1][i[1]+1] == 'b' or config[i[0]-1][i[1]+1] == 'B'):
-                config[i[0]-1][i[1]+1] = '.'
-                config[i[0]][i[1]] = '.'
-                config[i[0]-2][i[1]+2] = 'r'
+                updated_config = copy.deepcopy(config)
+                updated_config[i[0]-1][i[1]+1] = '.'
+                updated_config[i[0]][i[1]] = '.'
+                updated_config[i[0]-2][i[1]+2] = 'r'
                 break
             
             elif(config[i[0]-1][i[1]+1] == '.'):
-                config[i[0]-1][i[1]+1] = 'r'
-                config[i[0]][i[1]] = '.'
+                updated_config = copy.deepcopy(config)
+                updated_config[i[0]-1][i[1]+1] = 'r'
+                updated_config[i[0]][i[1]] = '.'
                 break
 
         # Left Diagonal jump when becoming King
@@ -84,13 +97,21 @@ def successor(config):
     return config
 
 successor_nodes = successor(board)
-new_board = [['.', '.', '.', '.', '.', '.', '.', '.'], ['.', '.', '.', '.', 'b', '.', '.', '.'], ['.', '.', '.', '.', '.', '.', '.', 'R'], ['.', '.', 'b', '.', 'b', '.', 'r', '.'], ['.', '.', '.', 'b', '.', '.', '.', '.'], ['.', '.', 'r', '.', '.', '.', '.', '.'], ['.', '.', '.', '.', '.', '.', '.', '.'], ['.', '.', '.', '.', 'B', '.', '.', '.']]
 print(successor_nodes)
-print(successor(new_board))
-
+red_pieces = coordinates_locater('r', board)
+print("Red piece coordinates: " + str(red_pieces))
 # Output the file
 output = open(output_file, "w")
 for i in range(rows):
     for j in range(columns):
         output.write(str(board[i][j]))
     output.write("\n")
+
+
+def Copyboard(board):
+    new_board = [[]]*8
+    for i in range(8):
+        new_board[i] = [] + board[i]
+    return new_board
+
+print(Copyboard(board))
