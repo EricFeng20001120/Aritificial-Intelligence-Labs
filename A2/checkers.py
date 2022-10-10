@@ -30,6 +30,34 @@ def coordinates_locater(piece, config):
                 index.append((i, j))
     return index
 
+# Cost function
+def cost(board, player):
+    # Assign a cost
+    g_cost = 0
+    # Define the opponent, opponent's king and player's king
+    if player == 'r':
+        opponent = 'b'
+        opponent_king = 'B'
+        king = 'R'
+    elif player == 'b':
+        opponent = 'r'
+        opponent_king = 'R'
+        king = 'B'
+
+    for i in range(rows):
+        for j in range(columns):
+            # Assign worth of pieces
+            if board[i][j] == player:
+                g_cost = g_cost + 10 
+            elif board[i][j] == king:
+                g_cost = g_cost + 20 
+            elif board[i][j] == opponent:
+                g_cost = g_cost - 10
+            elif board[i][j] == opponent_king:
+                g_cost = g_cost - 20  
+                    
+    return g_cost
+
 # Jump function
 def jump(board, player):
     path = []
@@ -50,9 +78,7 @@ def jump(board, player):
                     new_board[y-2][x+2] = 'r'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -69,9 +95,7 @@ def jump(board, player):
                     new_board[y-2][x-2] = 'r'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -90,9 +114,7 @@ def jump(board, player):
                     new_board[y+2][x+2] = 'b'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -109,9 +131,7 @@ def jump(board, player):
                     new_board[y+2][x-2] = 'b'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -126,9 +146,7 @@ def jump(board, player):
                 new_board[y-2][x+2] = 'R'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -141,9 +159,7 @@ def jump(board, player):
                 new_board[y-2][x-2] = 'R'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -156,9 +172,7 @@ def jump(board, player):
                 new_board[y+2][x+2] = 'R'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -171,9 +185,7 @@ def jump(board, player):
                 new_board[y+2][x-2] = 'R'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -188,9 +200,7 @@ def jump(board, player):
                 new_board[y-2][x+2] = 'B'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -203,9 +213,7 @@ def jump(board, player):
                 new_board[y-2][x-2] = 'B'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -218,9 +226,7 @@ def jump(board, player):
                 new_board[y+2][x+2] = 'B'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -233,9 +239,7 @@ def jump(board, player):
                 new_board[y+2][x-2] = 'B'
                 double_jump = jump(new_board, player)
                 tmp = numpy.array(double_jump).squeeze()
-                print(tmp.shape)
                 tmp = tmp.tolist()
-                print(tmp)
                 if (len(tmp) >= 1):
                     path.append(tmp)
                 else:
@@ -367,11 +371,26 @@ def successor(board, player):
                     path.append(new_board)
     return path
 
-#print(len(successor(configuration, 'r')))
-'''print(len(successor(configuration, 'R')))
-print(len(successor(configuration, 'b')))
-print(len(successor(configuration, 'B')))'''
-test = successor(configuration, 'b')
+test = successor(configuration, 'R')
+
+"""# Minimax with DFS
+def dfs_minmax(board):
+    best_move = []
+    if terminal(pos):
+        return best_move, utility(pos)
+    if player(pos) == MAX: 
+        value = -infinity
+    if player(pos) == MIN: 
+        value = infinity
+    for move in actions(pos):
+        nxt_pos = result(pos, move)
+        nxt_val, nxt_move = DFMiniMax(nxt_pos)
+    if player(pos) == MAX and value < nxt_val:
+        value, best_move = nxt_val, move
+    if player(pos) == MIN and value > nxt_value:
+        value, best_move = nxt_val, move
+    return best_move, value"""
+
 
 # Output the file
 output = open(output_file, "w")
