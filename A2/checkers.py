@@ -48,14 +48,14 @@ def cost(board, player):
         for j in range(columns):
             # Assign worth of pieces
             if board[i][j] == player:
-                g_cost = g_cost + 10 
+                g_cost = g_cost + 1
             elif board[i][j] == king:
-                g_cost = g_cost + 20 
+                g_cost = g_cost + 2 
             elif board[i][j] == opponent:
-                g_cost = g_cost - 10
+                g_cost = g_cost - 1
             elif board[i][j] == opponent_king:
-                g_cost = g_cost - 20  
-                    
+                g_cost = g_cost - 2  
+
     return g_cost
 
 # Jump function
@@ -372,6 +372,8 @@ def successor(board, player):
     return path
 
 test = successor(configuration, 'R')
+
+
 
 """# Minimax with DFS
 def dfs_minmax(board):
