@@ -185,15 +185,7 @@ def jump(board, player):
                 new_board[y-1][x+1] = '.'
                 if y == 2:
                     new_board[y-2][x+2] = 'R'
-                    player = 'R'
-                    double_jump = special_jump(new_board, x+2, y-2, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
-                    break
+                    path.append(new_board)
                 else:
                     new_board[y-2][x+2] = 'r'
                     double_jump = jump(new_board, player)
@@ -210,14 +202,7 @@ def jump(board, player):
                 new_board[y-1][x-1] = '.'
                 if y == 2:
                     new_board[y-2][x-2] = 'R'
-                    player = 'R'
-                    double_jump = special_jump(new_board, x-2, y-2, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
+                    path.append(new_board)
                 else:
                     new_board[y-2][x-2] = 'r'
                     double_jump = jump(new_board, player)
@@ -236,14 +221,7 @@ def jump(board, player):
                 new_board[y+1][x+1] = '.'
                 if y == 5:
                     new_board[y+2][x+2] = 'B'
-                    player = 'B'
-                    double_jump = special_jump(new_board, x+2, y+2, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
+                    path.append(new_board)
                 else:
                     new_board[y+2][x+2] = 'b'
                     double_jump = jump(new_board, player)
@@ -260,14 +238,7 @@ def jump(board, player):
                 new_board[y+1][x-1] = '.'
                 if y == 5:
                     new_board[y+2][x-2] = 'B'
-                    player = 'B'
-                    double_jump = special_jump(new_board, x-2, y+2, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
+                    path.append(new_board)
                 else:
                     new_board[y+2][x-2] = 'b'
                     double_jump = jump(new_board, player)
@@ -285,7 +256,7 @@ def jump(board, player):
                 new_board[y][x] = '.'
                 new_board[y-1][x+1] = '.'
                 new_board[y-2][x+2] = 'R'
-                double_jump = jump(new_board, player)
+                double_jump = special_jump(board, x+2, y-2, player)
                 tmp = numpy.array(double_jump).squeeze()
                 tmp = tmp.tolist()
                 if (len(tmp) >= 1):
@@ -298,7 +269,7 @@ def jump(board, player):
                 new_board[y][x] = '.'
                 new_board[y-1][x-1] = '.'
                 new_board[y-2][x-2] = 'R'
-                double_jump = jump(new_board, player)
+                double_jump = special_jump(board, x-2, y-2, player)
                 tmp = numpy.array(double_jump).squeeze()
                 tmp = tmp.tolist()
                 if (len(tmp) >= 1):
@@ -311,7 +282,7 @@ def jump(board, player):
                 new_board[y][x] = '.'
                 new_board[y+1][x+1] = '.'
                 new_board[y+2][x+2] = 'R'
-                double_jump = jump(new_board, player)
+                double_jump = special_jump(board, x+2, y+2, player)
                 tmp = numpy.array(double_jump).squeeze()
                 tmp = tmp.tolist()
                 if (len(tmp) >= 1):
@@ -324,7 +295,7 @@ def jump(board, player):
                 new_board[y][x] = '.'
                 new_board[y+1][x-1] = '.'
                 new_board[y+2][x-2] = 'R'
-                double_jump = jump(new_board, player)
+                double_jump = special_jump(board, x-2, y+2, player)
                 tmp = numpy.array(double_jump).squeeze()
                 tmp = tmp.tolist()
                 if (len(tmp) >= 1):
@@ -525,43 +496,55 @@ def goal_state(board, player):
 
 # Minimax implementation for the max player
 def dfs_max(board, player):
+    successor_nodes = []
     best_move = None
 
-    if goal_state(board, player):
-        return board
+    max_value = float('-inf')
 
-    if player == 'r':
-        value = float('-inf')
-    elif player == 'b':
-        value = float('inf')
+    if goal_state(board, player):
+        return board, max_value
 
     if player == 'r':
         king = 'R'
 
-    # Check for possible moves by r
-    for move in successor(board, player):
+    player_moves = successor(board, player)
+    king_moves = successor(board, king)
+    all_moves = player_moves + king_moves
+    print(numpy.array(all_moves))
+    for move in all_moves:
+        '''for i in move:
+            if (len(move) < len(all_moves)):
+                successor_nodes += [i]'''
+        if (len(move) == 8):
+            successor_nodes += [move]
+
+    print(successor_nodes)
+    for move in successor_nodes:
         g_cost = cost(move, player)
         print(g_cost)
-        if g_cost > value:
-            value = g_cost
+        if g_cost > max_value:
+            max_value = g_cost
             best_move = move
         pass
 
-    # Check for possible moves by R
-    for move in successor(board, king):
-        #print(move)
-        g_cost = cost(move, player)
-        print(g_cost)
-        if g_cost > value:
-            value = g_cost
-            best_move = move
-        pass
-
-    return best_move, value
+    return best_move, max_value
 
 r_moves = successor(configuration, 'r')
 R_moves = successor(configuration, 'R')
 test3 = r_moves + R_moves
+
+arr = []
+for x in test3:
+    for i in x:
+        if (len(x) < len(test3)):
+            print(numpy.array(i))
+            print(numpy.array(i).shape)
+            arr += [i]
+    if (len(x) == 8):
+        print(numpy.array(x))
+        arr += [x]
+
+print(arr)
 
 final_move, cost = dfs_max(configuration, 'r')
 print(final_move, cost)
@@ -584,17 +567,17 @@ def dfs_minmax(board):
         value, best_move = nxt_val, move
     return best_move, value"""
 
-# Output the file
+'''# Output the file
 output = open(output_file, "w")
-for x in range(len(test3)):
+for x in range(len(arr)):
     for i in range(rows):
         for j in range(columns):
-            output.write(str(test3[x][i][j]))
+            output.write(str(arr[x][i][j]))
         output.write("\n")
-    output.write("\n")
+    output.write("\n")'''
 
-"""output = open(output_file, "w")
+output = open(output_file, "w")
 for i in range(rows):
     for j in range(columns):
         output.write(str(final_move[i][j]))
-    output.write("\n")"""
+    output.write("\n")
