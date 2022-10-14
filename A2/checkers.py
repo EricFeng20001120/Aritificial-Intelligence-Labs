@@ -1,4 +1,5 @@
 # Import libraries
+from distutils.command.config import config
 import numpy
 import sys
 import copy
@@ -58,42 +59,93 @@ def cost(board, player):
 
     return g_cost
 
-def special_jump(board, x, y, player):
+# Jump function
+def jump(board, y, x, player):
     path = []
-    if player == 'R':
+    if player == 'r':
+        # Upper right jump
+        if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y-1][x+1] = '.'
+            if y == 2:
+                new_board[y-2][x+2] = 'R'
+                player = 'R'
+                path.append(new_board)
+            else:
+                new_board[y-2][x+2] = 'r'
+                double_jump = jump(new_board, y-2, x+2, player)
+                tmp = numpy.array(double_jump).squeeze()
+                tmp = tmp.tolist()
+                if (len(tmp) >= 1):
+                    path.append(tmp)
+                else:
+                    path.append(new_board)
+        # Upper left jump
+        if x >= 2 and y >= 2 and (board[y-1][x-1] == 'b' or board[y-1][x-1] == 'B') and board[y-2][x-2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y-1][x-1] = '.'
+            if y == 2:
+                new_board[y-2][x-2] = 'R'
+                player = 'R'
+                path.append(new_board)
+            else:
+                new_board[y-2][x-2] = 'r'
+                double_jump = jump(new_board, y-2, x-2, player)
+                tmp = numpy.array(double_jump).squeeze()
+                tmp = tmp.tolist()
+                if (len(tmp) >= 1):
+                    path.append(tmp)
+                else:
+                    path.append(new_board)
+
+    elif player == 'b':
         # Bottom right jump
-        if x <= 5 and y <= 5 and (board[y+1][x+1] == 'b' or board[y+1][x+1] == 'B') and board[y+2][x+2] == '.':
+        if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
             new_board = copy.deepcopy(board)
             new_board[y][x] = '.'
             new_board[y+1][x+1] = '.'
-            new_board[y+2][x+2] = 'R'
-            double_jump = special_jump(new_board, x+2, y+2, player)
-            tmp = numpy.array(double_jump).squeeze()
-            tmp = tmp.tolist()
-            if (len(tmp) >= 1):
-                path.append(tmp)
-            else:
+            if y == 5:
+                new_board[y+2][x+2] = 'B'
+                player = 'B'
                 path.append(new_board)
+            else:
+                new_board[y+2][x+2] = 'b'
+                double_jump = jump(new_board, y+2, x+2, player)
+                tmp = numpy.array(double_jump).squeeze()
+                tmp = tmp.tolist()
+                if (len(tmp) >= 1):
+                    path.append(tmp)
+                else:
+                    path.append(new_board)
         # Bottom left jump
-        if x >= 2 and y <= 5 and (board[y+1][x-1] == 'b' or board[y+1][x-1] == 'B') and board[y+2][x-2] == '.':
+        if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
             new_board = copy.deepcopy(board)
             new_board[y][x] = '.'
             new_board[y+1][x-1] = '.'
-            new_board[y+2][x-2] = 'R'
-            double_jump = special_jump(new_board, x-2, y+2, player)
-            tmp = numpy.array(double_jump).squeeze()
-            tmp = tmp.tolist()
-            if (len(tmp) >= 1):
-                path.append(tmp)
-            else:
+            if y == 5:
+                new_board[y+2][x-2] = 'B'
+                player = 'B'
                 path.append(new_board)
+            else:
+                new_board[y+2][x-2] = 'b'
+                double_jump = jump(new_board, y+2, x-2, player)
+                tmp = numpy.array(double_jump).squeeze()
+                tmp = tmp.tolist()
+                if (len(tmp) >= 1):
+                    path.append(tmp)
+                else:
+                    path.append(new_board)
+
+    elif player == 'R':
         # Upper right jump
         if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
             new_board = copy.deepcopy(board)
             new_board[y][x] = '.'
             new_board[y-1][x+1] = '.'
             new_board[y-2][x+2] = 'R'
-            double_jump = special_jump(new_board, x+2, y-2, player)
+            double_jump = jump(new_board, y-2, x+2, player)
             tmp = numpy.array(double_jump).squeeze()
             tmp = tmp.tolist()
             if (len(tmp) >= 1):
@@ -106,7 +158,34 @@ def special_jump(board, x, y, player):
             new_board[y][x] = '.'
             new_board[y-1][x-1] = '.'
             new_board[y-2][x-2] = 'R'
-            double_jump = special_jump(new_board, x-2, y-2, player)
+            double_jump = jump(new_board, y-2, x-2, player)
+            tmp = numpy.array(double_jump).squeeze()
+            tmp = tmp.tolist()
+            print("HEYYY")
+            if (len(tmp) >= 1):
+                path.append(tmp)
+            else:
+                path.append(new_board)
+        # Bottom right jump
+        if x <= 5 and y <= 5 and (board[y+1][x+1] == 'b' or board[y+1][x+1] == 'B') and board[y+2][x+2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y+1][x+1] = '.'
+            new_board[y+2][x+2] = 'R'
+            double_jump = jump(new_board, y+2, x+2, player)
+            tmp = numpy.array(double_jump).squeeze()
+            tmp = tmp.tolist()
+            if (len(tmp) >= 1):
+                path.append(tmp)
+            else:
+                path.append(new_board)
+        # Bottom left jump
+        if x >= 2 and y <= 5 and (board[y+1][x-1] == 'b' or board[y+1][x-1] == 'B') and board[y+2][x-2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y+1][x-1] = '.'
+            new_board[y+2][x-2] = 'R'
+            double_jump = jump(new_board, y+2, x-2, player)
             tmp = numpy.array(double_jump).squeeze()
             tmp = tmp.tolist()
             if (len(tmp) >= 1):
@@ -115,39 +194,13 @@ def special_jump(board, x, y, player):
                 path.append(new_board)
 
     elif player == 'B':
-        # Bottom right jump
-        if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
-            new_board = copy.deepcopy(board)
-            new_board[y][x] = '.'
-            new_board[y+1][x+1] = '.'
-            new_board[y+2][x+2] = 'B'
-            double_jump = special_jump(new_board, x+2, y+2, player)
-            tmp = numpy.array(double_jump).squeeze()
-            tmp = tmp.tolist()
-            if (len(tmp) >= 1):
-                path.append(tmp)
-            else:
-                path.append(new_board)
-        # Bottom left jump
-        if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
-            new_board = copy.deepcopy(board)
-            new_board[y][x] = '.'
-            new_board[y+1][x-1] = '.'
-            new_board[y+2][x-2] = 'B'
-            double_jump = special_jump(new_board, x-2, y+2, player)
-            tmp = numpy.array(double_jump).squeeze()
-            tmp = tmp.tolist()
-            if (len(tmp) >= 1):
-                path.append(tmp)
-            else:
-                path.append(new_board)
         # Upper right jump
         if x <= 5 and y >= 2 and (board[y-1][x+1] == 'r' or board[y-1][x+1] == 'R') and board[y-2][x+2] == '.':
             new_board = copy.deepcopy(board)
             new_board[y][x] = '.'
             new_board[y-1][x+1] = '.'
             new_board[y-2][x+2] = 'B'
-            double_jump = special_jump(new_board, x+2, y-2, player)
+            double_jump = jump(new_board, y-2, x+2, player)
             tmp = numpy.array(double_jump).squeeze()
             tmp = tmp.tolist()
             if (len(tmp) >= 1):
@@ -160,202 +213,39 @@ def special_jump(board, x, y, player):
             new_board[y][x] = '.'
             new_board[y-1][x-1] = '.'
             new_board[y-2][x-2] = 'B'
-            double_jump = special_jump(new_board, x-2, y-2, player)
+            double_jump = jump(new_board, y-2, x-2, player)
             tmp = numpy.array(double_jump).squeeze()
             tmp = tmp.tolist()
             if (len(tmp) >= 1):
                 path.append(tmp)
             else:
                 path.append(new_board)
-
-    return path
-
-# Jump function
-def jump(board, player):
-    path = []
-    player_piece = coordinates_locater(player, board)
-    # Create successors for the player piece
-    for i in player_piece:
-        y, x = i[0], i[1]
-        if player == 'r':
-            # Upper right jump
-            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x+1] = '.'
-                if y == 2:
-                    new_board[y-2][x+2] = 'R'
-                    path.append(new_board)
-                else:
-                    new_board[y-2][x+2] = 'r'
-                    double_jump = jump(new_board, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
-            # Upper left jump
-            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'b' or board[y-1][x-1] == 'B') and board[y-2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x-1] = '.'
-                if y == 2:
-                    new_board[y-2][x-2] = 'R'
-                    path.append(new_board)
-                else:
-                    new_board[y-2][x-2] = 'r'
-                    double_jump = jump(new_board, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
-
-        elif player == 'b':
-            # Bottom right jump
-            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x+1] = '.'
-                if y == 5:
-                    new_board[y+2][x+2] = 'B'
-                    path.append(new_board)
-                else:
-                    new_board[y+2][x+2] = 'b'
-                    double_jump = jump(new_board, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
-            # Bottom left jump
-            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x-1] = '.'
-                if y == 5:
-                    new_board[y+2][x-2] = 'B'
-                    path.append(new_board)
-                else:
-                    new_board[y+2][x-2] = 'b'
-                    double_jump = jump(new_board, player)
-                    tmp = numpy.array(double_jump).squeeze()
-                    tmp = tmp.tolist()
-                    if (len(tmp) >= 1):
-                        path.append(tmp)
-                    else:
-                        path.append(new_board)
-
-        elif player == 'R':
-            # Upper right jump
-            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'b' or board[y-1][x+1] == 'B') and board[y-2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x+1] = '.'
-                new_board[y-2][x+2] = 'R'
-                double_jump = special_jump(board, x+2, y-2, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Upper left jump
-            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'b' or board[y-1][x-1] == 'B') and board[y-2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x-1] = '.'
-                new_board[y-2][x-2] = 'R'
-                double_jump = special_jump(board, x-2, y-2, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Bottom right jump
-            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'b' or board[y+1][x+1] == 'B') and board[y+2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x+1] = '.'
-                new_board[y+2][x+2] = 'R'
-                double_jump = special_jump(board, x+2, y+2, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Bottom left jump
-            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'b' or board[y+1][x-1] == 'B') and board[y+2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x-1] = '.'
-                new_board[y+2][x-2] = 'R'
-                double_jump = special_jump(board, x-2, y+2, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-
-        elif player == 'B':
-            # Upper right jump
-            if x <= 5 and y >= 2 and (board[y-1][x+1] == 'r' or board[y-1][x+1] == 'R') and board[y-2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x+1] = '.'
-                new_board[y-2][x+2] = 'B'
-                double_jump = jump(new_board, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Upper left jump
-            if x >= 2 and y >= 2 and (board[y-1][x-1] == 'r' or board[y-1][x-1] == 'R') and board[y-2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y-1][x-1] = '.'
-                new_board[y-2][x-2] = 'B'
-                double_jump = jump(new_board, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Bottom right jump
-            if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x+1] = '.'
-                new_board[y+2][x+2] = 'B'
-                double_jump = jump(new_board, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
-            # Bottom left jump
-            if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
-                new_board = copy.deepcopy(board)
-                new_board[y][x] = '.'
-                new_board[y+1][x-1] = '.'
-                new_board[y+2][x-2] = 'B'
-                double_jump = jump(new_board, player)
-                tmp = numpy.array(double_jump).squeeze()
-                tmp = tmp.tolist()
-                if (len(tmp) >= 1):
-                    path.append(tmp)
-                else:
-                    path.append(new_board)
+        # Bottom right jump
+        if x <= 5 and y <= 5 and (board[y+1][x+1] == 'r' or board[y+1][x+1] == 'R') and board[y+2][x+2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y+1][x+1] = '.'
+            new_board[y+2][x+2] = 'B'
+            double_jump = jump(new_board, y+2, x+2, player)
+            tmp = numpy.array(double_jump).squeeze()
+            tmp = tmp.tolist()
+            if (len(tmp) >= 1):
+                path.append(tmp)
+            else:
+                path.append(new_board)
+        # Bottom left jump
+        if x >= 2 and y <= 5 and (board[y+1][x-1] == 'r' or board[y+1][x-1] == 'R') and board[y+2][x-2] == '.':
+            new_board = copy.deepcopy(board)
+            new_board[y][x] = '.'
+            new_board[y+1][x-1] = '.'
+            new_board[y+2][x-2] = 'B'
+            double_jump = jump(new_board, y+2, x-2, player)
+            tmp = numpy.array(double_jump).squeeze()
+            tmp = tmp.tolist()
+            if (len(tmp) >= 1):
+                path.append(tmp)
+            else:
+                path.append(new_board)
     return path
 
 # Successor function
@@ -365,7 +255,10 @@ def successor(board, player):
         for i in range(rows):
             for j in range(columns):
                 if board[i][j] == 'r':
-                    path = jump(board, board[i][j])
+                    path += jump(board, i, j, board[i][j])
+        if path:  
+            path = numpy.array(path).squeeze()
+            path = path.tolist()
         player_piece = coordinates_locater(player, board)
         for i in player_piece:
             y, x = i[0], i[1]
@@ -392,7 +285,11 @@ def successor(board, player):
         for i in range(rows):
             for j in range(columns):
                 if board[i][j] == 'R':
-                    path = jump(board, board[i][j])
+                    path = jump(board, i, j, board[i][j])
+        if path:  
+            print(numpy.array(path).shape)
+            path = numpy.array(path).squeeze()
+            path = path.tolist()
         player_piece = coordinates_locater(player, board)
         for i in player_piece:
             y, x = i[0], i[1]
@@ -425,7 +322,10 @@ def successor(board, player):
         for i in range(rows):
             for j in range(columns):
                 if board[i][j] == 'b':
-                    path = jump(board, board[i][j])
+                    path = jump(board, i, j, board[i][j])
+        if path:  
+            path = numpy.array(path).squeeze()
+            path = path.tolist()
         player_piece = coordinates_locater(player, board)
         for i in player_piece:
             y, x = i[0], i[1]
@@ -452,7 +352,7 @@ def successor(board, player):
         for i in range(rows):
             for j in range(columns):
                 if board[i][j] == 'B':
-                    path = jump(board, board[i][j])
+                    path = jump(board, i, j, board[i][j])
         player_piece = coordinates_locater(player, board)
         for i in player_piece:
             y, x = i[0], i[1]
@@ -494,15 +394,60 @@ def goal_state(board, player):
         status = True
     return status
 
-# Minimax implementation for the max player
-def dfs_max(board, player):
-    successor_nodes = []
+# Minimax implementation
+def min_max(board, depth, player):
+    best_move = None
+    if goal_state(board, player) or depth == 0:
+        return best_move, cost(board, player)
+    
+    if player == 'r':
+        king = 'R'
+    elif player == 'b':
+        king = 'B'
+    
+    player_moves = successor(board, player)
+    king_moves = successor(board, king)
+    all_moves = player_moves + king_moves
+
+    if player == 'r':
+        max_value = -200
+        best_move = None
+        for move in all_moves:
+            eval = min_max(move, depth-1, 'b')[1]
+            max_value = max(eval, max_value)
+            if (max_value == eval):
+                best_move = move
+        return best_move, max_value
+
+    elif player == 'b':
+        min_value = 200
+        worst_move = None
+        for move in all_moves:
+            eval = min_max(move, depth-1, 'r')[1]
+            min_value = min(eval, min_value)
+            if (min_value == eval):
+                worst_move = move
+                print(worst_move, eval, min_value)
+        return worst_move, min_value
+
+r_moves = successor(configuration, 'r')
+R_moves = successor(configuration, 'R')
+test3 = r_moves + R_moves
+
+print(test3)
+print(len(test3))
+print(min_max(configuration, 1, 'r'))
+
+final_move, utility = min_max(configuration, 1, 'r')
+print(numpy.array(final_move))
+
+def dijkstra (board, player):
     best_move = None
 
     max_value = float('-inf')
 
     if goal_state(board, player):
-        return board, max_value
+        return board, cost(board, player)
 
     if player == 'r':
         king = 'R'
@@ -510,18 +455,9 @@ def dfs_max(board, player):
     player_moves = successor(board, player)
     king_moves = successor(board, king)
     all_moves = player_moves + king_moves
-    print(numpy.array(all_moves))
-    for move in all_moves:
-        '''for i in move:
-            if (len(move) < len(all_moves)):
-                successor_nodes += [i]'''
-        if (len(move) == 8):
-            successor_nodes += [move]
 
-    print(successor_nodes)
-    for move in successor_nodes:
+    for move in all_moves:
         g_cost = cost(move, player)
-        print(g_cost)
         if g_cost > max_value:
             max_value = g_cost
             best_move = move
@@ -529,55 +465,19 @@ def dfs_max(board, player):
 
     return best_move, max_value
 
-r_moves = successor(configuration, 'r')
-R_moves = successor(configuration, 'R')
-test3 = r_moves + R_moves
+best_move, value = dijkstra(configuration, 'r')
 
-arr = []
-for x in test3:
-    for i in x:
-        if (len(x) < len(test3)):
-            print(numpy.array(i))
-            print(numpy.array(i).shape)
-            arr += [i]
-    if (len(x) == 8):
-        print(numpy.array(x))
-        arr += [x]
-
-print(arr)
-
-final_move, cost = dfs_max(configuration, 'r')
-print(final_move, cost)
-
-"""# Minimax with DFS
-def dfs_minmax(board):
-    best_move = []
-    if terminal(pos):
-        return best_move, utility(pos)
-    if player(pos) == MAX: 
-        value = float('-inf')
-    if player(pos) == MIN: 
-        value = infinity
-    for move in actions(pos):
-        nxt_pos = result(pos, move)
-        nxt_val, nxt_move = DFMiniMax(nxt_pos)
-    if player(pos) == MAX and value < nxt_val:
-        value, best_move = nxt_val, move
-    if player(pos) == MIN and value > nxt_value:
-        value, best_move = nxt_val, move
-    return best_move, value"""
-
-'''# Output the file
-output = open(output_file, "w")
-for x in range(len(arr)):
+# Output the file
+'''output = open(output_file, "w")
+for x in range(len(test3)):
     for i in range(rows):
         for j in range(columns):
-            output.write(str(arr[x][i][j]))
+            output.write(str(test3[x][i][j]))
         output.write("\n")
-    output.write("\n")'''
-
+    output.write("\n")
+'''
 output = open(output_file, "w")
 for i in range(rows):
     for j in range(columns):
-        output.write(str(final_move[i][j]))
+        output.write(str(best_move[i][j]))
     output.write("\n")
