@@ -24,6 +24,20 @@ board_lines = list_of_lines[3:]
 del row_line[-1], col_line[-1], ship_line[-1]
 print(row_line, col_line, ship_line)
 
+# Get the number of ships per the ship line
+num_submarines, num_destroyers, num_cruisers, num_battleships = 0, 0, 0, 0
+for i in range(len(ship_line)):
+    if i == 0:
+        num_submarines = ship_line[i]
+    if i == 1:
+        num_destroyers = ship_line[i]
+    if i == 2:
+        num_cruisers = ship_line[i]
+    if i == 3:
+        num_battleships = ship_line[i]
+
+print(num_submarines, num_destroyers, num_cruisers, num_battleships)
+
 # Get the n for the nxn board configuration
 n = len(board_lines)
 
