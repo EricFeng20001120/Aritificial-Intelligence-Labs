@@ -47,10 +47,12 @@ board = [list(i.strip()) for i in board_lines]
 print(np.array(board))
 
 # Function that finds the coordinates of a specific digit given the configuration
-def coordinates_locater(digit, config):
+def coordinates_locater(config, digit):
     index = []
-    for i in range(1):
-        for j in range(1):
+    for i in range(n):
+        for j in range(n):
             if config[i][j] == digit:
                 index.append((i, j))
     return index
+
+print(coordinates_locater(board, 'S'))
