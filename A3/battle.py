@@ -55,4 +55,13 @@ def coordinates_locater(config, digit):
                 index.append((i, j))
     return index
 
+def zero_check(config):
+    for i in range(len(col_line)):
+        if col_line[i] == '0':
+            return i
+
+    #return config
+
 print(coordinates_locater(board, 'S'))
+
+print(zero_check(board))
