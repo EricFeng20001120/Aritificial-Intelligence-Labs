@@ -11,8 +11,6 @@ output_file = sys.argv[2]
 with open(input_file, 'r') as f:
     list_of_lines = f.readlines()
 
-print(list_of_lines)
-
 # Get the first three lines for the row, column and ship information
 # The last n lines are for the board configuration
 row_line = list(list_of_lines[0])
@@ -22,7 +20,6 @@ board_lines = list_of_lines[3:]
 
 # Remove the whitespace at the end of the first three lines
 del row_line[-1], col_line[-1], ship_line[-1]
-print(row_line, col_line, ship_line)
 
 # Get the number of ships per the ship line
 num_submarines, num_destroyers, num_cruisers, num_battleships = 0, 0, 0, 0
@@ -35,8 +32,6 @@ for i in range(len(ship_line)):
         num_cruisers = ship_line[i]
     if i == 3:
         num_battleships = ship_line[i]
-
-print(num_submarines, num_destroyers, num_cruisers, num_battleships)
 
 # Get the n for the nxn board configuration
 n = len(board_lines)
@@ -64,4 +59,5 @@ def zero_check(config):
 
 print(coordinates_locater(board, 'S'))
 
-print(zero_check(board))
+print(num_submarines, num_destroyers, num_cruisers, num_battleships)
+print(row_line, col_line, ship_line)
