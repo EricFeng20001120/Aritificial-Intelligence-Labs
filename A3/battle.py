@@ -1,7 +1,6 @@
 # Import necessary libraries
 import sys
 import copy
-from xml import dom
 import numpy as np
 
 # Set the two parameters to pass in
