@@ -175,12 +175,14 @@ class BimaruPuzzle:
 
         # Checking the dimensions on the pattern should be 3x3
         patt = self.get_clean_grid(grid_pattern)
+        print(patt)
         dims_healthy = len(patt) == 3 and len(patt[0]) == 3
         if not dims_healthy:
             print("Provided grid is inadequate")
             return
 
         grid_row_count, grid_col_count = self.get_grid_dims()
+        print(grid_row_count,grid_col_count)
         top_row = min(centre_row - 1, grid_row_count-1)
         bottom_row = max(centre_row + 1, 0)
         right_col = min(centre_column + 1, grid_col_count-1)

@@ -44,8 +44,6 @@ n = len(board_lines)
 # Store the board into a list of list while stripping white spaces
 board = [list(i.strip()) for i in board_lines]
 
-print(np.array(board))
-
 # Function that finds the coordinates of a specific digit given the configuration
 def coordinates_locater(config, digit):
     index = []
@@ -55,47 +53,174 @@ def coordinates_locater(config, digit):
                 index.append((i, j))
     return index
 
-def zero_check(config):
-    for i in range(len(col_line)):
-        if col_line[i] == '0':
-            return i
-
-print(num_submarines, num_destroyers, num_cruisers, num_battleships)
-print(row_line, col_line)
-
-pieces = ['S', 'L', 'R', 'T', 'B', 'M']
+'''print(num_submarines, num_destroyers, num_cruisers, num_battleships)
+print(row_line, col_line)'''
 
 # Variable declaration
+pieces = ['S', 'L', 'R', 'T', 'B', 'M']
 water_surrounding = {
-    'S':
-        """
-        WWW
-        WSW
-        WWW
-        """
+    'S': [['W', 'W', 'W'], ['W', 'S', 'W'], ['W', 'W', 'W']],
+    'T': [['W', 'W', 'W'], ['W', 'T', 'W'], ['W', '0', 'W']],
+    'M': [['W', '0', 'W'], ['0', 'M', '0'], ['W', '0', 'W']],
+    'L': [['W', 'W', 'W'], ['W', 'L', 'X'], ['W', 'W', 'W']],
+    'R': [['W', 'W', 'W'], ['0', 'R', 'W'], ['W', 'W', 'W']],
+    'B': [['W', 'X', 'W'], ['W', 'B', 'W'], ['W', 'W', 'W']]
 }
 
-def remaining_row_col_count(config):
-    for row_index, row in enumerate(config):
+def superimpose_grids(config, grid_pattern, centre_row, centre_column):
+    # If cell is in top row and not to sides
+    if centre_row == 0 and (centre_column != 0 and centre_column != (n-1)):
+        top_row = centre_row
+        bottom_row = centre_row + 1
+        right_col = centre_column + 1
+        left_col = centre_column - 1
+        print(left_col)
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell  
+
+    # If cell is in bottom row and not to sides
+    elif centre_row == (n-1) and (centre_column != 0 and centre_column != (n-1)):
+        top_row = centre_row - 1
+        bottom_row = centre_row
+        right_col = centre_column + 1
+        left_col = centre_column - 1
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell 
+    
+    # If cell is in right column and not at top or bottom
+    elif centre_column == (n-1) and centre_row != 0 and centre_row != (n-1):
+        top_row = centre_row - 1
+        bottom_row = centre_row + 1
+        right_col = centre_column
+        left_col = centre_column - 1
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell 
+    
+    # If cell is in left column and not at top or bottom
+    elif centre_column == 0 and centre_row != 0 and centre_row != (n-1):
+        top_row = centre_row - 1
+        bottom_row = centre_row + 1
+        right_col = centre_column + 1
+        left_col = centre_column
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell 
+    
+    # If cell is in right row and top
+    elif centre_row == 0 and centre_column == (n-1):
+        top_row = centre_row
+        bottom_row = centre_row + 1
+        right_col = centre_column
+        left_col = centre_column - 1
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell 
+
+    # If cell is in right row and bottom
+    elif centre_column == (n-1) and centre_row == n-1:
+        top_row = centre_row - 1
+        bottom_row = centre_row
+        right_col = centre_column
+        left_col = centre_column - 1
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell
+    
+    # If cell is in bottom row and left
+    elif centre_row == (n-1) and centre_column == 0:
+        top_row = centre_row - 1
+        bottom_row = centre_row
+        right_col = centre_column + 1
+        left_col = centre_column 
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell
+    
+    # If cell is in top row and left
+    elif centre_row == 0 and centre_column == 0:
+        top_row = centre_row
+        bottom_row = centre_row + 1
+        right_col = centre_column + 1
+        left_col = centre_column 
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell
+
+    else:
+        top_row = centre_row - 1
+        bottom_row = centre_row + 1
+        right_col = centre_column + 1
+        left_col = centre_column - 1
+        
+        for row_idx in range(top_row, bottom_row + 1):
+            for col_idx in range(left_col, right_col + 1):
+                subgrid_row = row_idx - centre_row + 1
+                subgrid_col = col_idx - centre_column + 1
+                subcell = grid_pattern[subgrid_row][subgrid_col]
+                if subcell == 'W':
+                    config[row_idx][col_idx] = subcell  
+
+    return config
+
+def autofill(config):
+    updated_config = copy.deepcopy(config)
+    for row_index in range(n):
+        for col_index in range(n):
+            if row_line[row_index] == 0 or col_line[col_index] == 0:
+                updated_config[row_index][col_index] = 'W'
+
+    for row_index, row in enumerate(updated_config):
         for col_index, cell_char in enumerate(row):
             if cell_char in pieces:
                 row_line[row_index] -= 1
                 col_line[col_index] -= 1
-    return row_line, col_line
 
-def autofill_water_in_full_rows_cols(config):
-    """
-    Add water cells if all the ship bits for that column/row are populated already.
-    :return:
-    """
-    ships_to_add_to_row, ships_to_add_to_col = remaining_row_col_count(board)
-    for row_index, row in enumerate(config):
-        for col_index, cell_char in enumerate(row):
-            if ships_to_add_to_row[row_index] == 0 or ships_to_add_to_col[col_index] == 0:
-                if config[row_index][col_index] == '0':
-                    config[row_index][col_index] = 'W'
+    for row_index, row in enumerate(updated_config):
+        for col_index, cell in enumerate(row):
+            if cell in pieces:
+                superimpose_grids(updated_config, water_surrounding[cell], row_index, col_index)
     
-    return np.array(config)
+    for row_index in range(n):
+        for col_index in range(n):
+            if row_line[row_index] == 0 or col_line[col_index] == 0:
+                if updated_config[row_index][col_index] == '0':
+                    updated_config[row_index][col_index] = 'W'
+    
+    return np.array(updated_config)
 
-print(remaining_row_col_count(board))
-print(autofill_water_in_full_rows_cols(board))
+print(autofill(board))
