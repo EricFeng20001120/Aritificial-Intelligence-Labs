@@ -182,7 +182,7 @@ def assign_variable(config):
     return assignments, domain
 
 # Reduce top row constraints
-def top_corners(config, domains):
+def reduce_top_corners(config, domains):
     for i in domains:
         y, x = i[0], i[1]
         if y == 0 and x == 0:
@@ -200,7 +200,7 @@ def top_corners(config, domains):
     return domains
 
 # Reduce bottom row constraints
-def bottom_corners(config, domains):
+def reduce_bottom_corners(config, domains):
     for i in domains:
         y, x = i[0], i[1]
         if y == n-1 and x == n-1:
@@ -218,7 +218,7 @@ def bottom_corners(config, domains):
     return domains
 
 # Reduce side constraints
-def sides(config, domains):
+def reduce_sides(config, domains):
     for i in domains:
         y, x = i[0], i[1]
         if x == 0 and y > 0 and y < n-1:
@@ -290,14 +290,12 @@ def fc(config):
 
     return updated_config
 
-#print(np.array(autofill(board)))
 board = autofill(board)
-#print(assign_variable(board))
 assignments, domains = assign_variable(board)
 
 print(np.array(board))
-domains = top_corners(board, domains)
-domains = bottom_corners(board, domains)
-domains = sides(board, domains)
+domains = reduce_top_corners(board, domains)
+domains = reduce_bottom_corners(board, domains)
+domains = reduce_sides(board, domains)
 domains = reduce_middle_board(board, domains)
 print(domains)
