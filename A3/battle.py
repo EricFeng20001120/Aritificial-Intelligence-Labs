@@ -1,6 +1,7 @@
 # Import necessary libraries
 import sys
 import copy
+from xml import dom
 import numpy as np
 
 # Set the two parameters to pass in
@@ -53,7 +54,8 @@ def coordinates_locater(config, digit):
     return index
 
 # Variable declaration
-pieces = ['S', 'L', 'R', 'T', 'B', 'M']
+ship_pieces = ['S', 'L', 'R', 'T', 'B', 'M']
+total_pieces = ['S', 'L', 'R', 'T', 'B', 'M', 'W']
 water_surrounding = {
     'S': [['W', 'W', 'W'], ['W', 'S', 'W'], ['W', 'W', 'W']],
     'T': [['W', 'W', 'W'], ['W', 'T', 'W'], ['W', '0', 'W']],
@@ -148,13 +150,13 @@ def autofill(config):
 
     for row_index, row in enumerate(updated_config):
         for col_index, cell_char in enumerate(row):
-            if cell_char in pieces:
+            if cell_char in ship_pieces:
                 row_line[row_index] -= 1
                 col_line[col_index] -= 1
 
     for row_index, row in enumerate(updated_config):
         for col_index, cell in enumerate(row):
-            if cell in pieces:
+            if cell in ship_pieces:
                 superimpose_grids(updated_config, water_surrounding[cell], row_index, col_index)
     
     for row_index in range(n):
@@ -165,25 +167,114 @@ def autofill(config):
 
     return updated_config
 
-'''# Assign variables
+# Assign variables and domains
 def assign_variable(config):
-    assignments = {}
+    # Create dictionary to store i, j indexes for cell-based assignments
+    assignments = []
+    domain = {}
+
     for i in range(n):
         for j in range(n):
-            assignments += ((i, j), config[i][j])
+            if config[i][j] not in total_pieces:
+                assignments.append([i,j])
+                domain[i, j] = [x for x in total_pieces]
 
-    return assignments'''
+    return assignments, domain
 
-def fill_x(config):
-    updated_config = copy.deepcopy(config)
-    for i in range(n):
-        for j in range(n):
-            if updated_config[i][j] == '0' and row_line[i] == 1 and col_line[j] == 1:
-                updated_config[i][j] == 'S'
-                row_line[i] -= 1
-                col_line[j] -= 1
+# Reduce top row constraints
+def top_corners(config, domains):
+    for i in domains:
+        y, x = i[0], i[1]
+        if y == 0 and x == 0:
+            domains[i] = ['S', 'W', 'L', 'T', 'R']
+            if config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'L']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T']
+        elif y == 0 and x == n-1:
+            domains[i] = ['S', 'W', 'L', 'T', 'R']
+            if config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'T']
+            elif config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'R']
+    return domains
 
-    return np.array(updated_config)
+# Reduce bottom row constraints
+def bottom_corners(config, domains):
+    for i in domains:
+        y, x = i[0], i[1]
+        if y == n-1 and x == n-1:
+            domains[i] = ['S', 'W', 'L', 'B', 'R']
+            if config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'R']
+            elif config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'B']
+        elif y == n-1 and x == 0:
+            domains[i] = ['S', 'W', 'L', 'B', 'R']
+            if config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'B']
+    return domains
+
+# Reduce side constraints
+def sides(config, domains):
+    for i in domains:
+        y, x = i[0], i[1]
+        if x == 0 and y > 0 and y < n-1:
+            domains[i] = ['S', 'W', 'L', 'T', 'B', 'M']
+            if config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'B', 'L']
+            elif config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'T', 'L']
+        elif x == n-1 and y > 0 and y < n-1:
+            domains[i] = ['S', 'W', 'R', 'T', 'B', 'M']
+            if config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'B', 'R']
+            elif config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'T', 'R']
+        elif y == n-1 and x > 0 and x < n-1:
+            domains[i] = ['S', 'W', 'R', 'L', 'B', 'M']
+            if config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'B', 'L']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'B', 'R']
+        elif y == 0 and x > 0 and x < n-1:
+            domains[i] = ['S', 'W', 'R', 'L', 'T', 'M']
+            if config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'L']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'R']
+    return domains
+
+# Reduce middle board constraints
+def reduce_middle_board(config, domains):
+    for i in domains:
+        y, x = i[0], i[1]
+        if x > 0 and x < n-1 and y > 0 and y < n-1:
+            if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x-1] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L', 'R', 'M']
+            elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'B', 'M']
+            elif config[y-1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'R']
+            elif config[y+1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'B', 'R']
+            elif config[y-1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'L']
+            elif config[y+1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'B', 'L']
+            elif config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L', 'R', 'M', 'T']
+            elif config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'L', 'R', 'M', 'B']
+            elif config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'L', 'T', 'M', 'B']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'R', 'T', 'M', 'B']
+    return domains
 
 # Check for solution
 def is_solved(config):
@@ -199,4 +290,14 @@ def fc(config):
 
     return updated_config
 
-print(np.array(autofill(board)))
+#print(np.array(autofill(board)))
+board = autofill(board)
+#print(assign_variable(board))
+assignments, domains = assign_variable(board)
+
+print(np.array(board))
+domains = top_corners(board, domains)
+domains = bottom_corners(board, domains)
+domains = sides(board, domains)
+domains = reduce_middle_board(board, domains)
+print(domains)
