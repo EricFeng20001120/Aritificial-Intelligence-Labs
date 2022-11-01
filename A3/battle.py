@@ -1,5 +1,4 @@
 # Import necessary libraries
-from re import X
 import sys
 import copy
 import numpy as np
@@ -53,9 +52,6 @@ def coordinates_locater(config, digit):
                 index.append((i, j))
     return index
 
-'''print(num_submarines, num_destroyers, num_cruisers, num_battleships)
-print(row_line, col_line)'''
-
 # Variable declaration
 pieces = ['S', 'L', 'R', 'T', 'B', 'M']
 water_surrounding = {
@@ -67,136 +63,82 @@ water_surrounding = {
     'B': [['W', 'X', 'W'], ['W', 'B', 'W'], ['W', 'W', 'W']]
 }
 
-def superimpose_grids(config, grid_pattern, centre_row, centre_column):
+def superimpose_grids(config, grid_pattern, row_in_middle, col_in_middleumn):
     # If cell is in top row and not to sides
-    if centre_row == 0 and (centre_column != 0 and centre_column != (n-1)):
-        top_row = centre_row
-        bottom_row = centre_row + 1
-        right_col = centre_column + 1
-        left_col = centre_column - 1
-        print(left_col)
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell  
+    if row_in_middle == 0 and (col_in_middleumn != 0 and col_in_middleumn != (n-1)):
+        top_row = row_in_middle
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn - 1
 
     # If cell is in bottom row and not to sides
-    elif centre_row == (n-1) and (centre_column != 0 and centre_column != (n-1)):
-        top_row = centre_row - 1
-        bottom_row = centre_row
-        right_col = centre_column + 1
-        left_col = centre_column - 1
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell 
+    elif row_in_middle == (n-1) and (col_in_middleumn != 0 and col_in_middleumn != (n-1)):
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn - 1 
     
     # If cell is in right column and not at top or bottom
-    elif centre_column == (n-1) and centre_row != 0 and centre_row != (n-1):
-        top_row = centre_row - 1
-        bottom_row = centre_row + 1
-        right_col = centre_column
-        left_col = centre_column - 1
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell 
+    elif col_in_middleumn == (n-1) and row_in_middle != 0 and row_in_middle != (n-1):
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn
+        left_col = col_in_middleumn - 1
     
     # If cell is in left column and not at top or bottom
-    elif centre_column == 0 and centre_row != 0 and centre_row != (n-1):
-        top_row = centre_row - 1
-        bottom_row = centre_row + 1
-        right_col = centre_column + 1
-        left_col = centre_column
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell 
+    elif col_in_middleumn == 0 and row_in_middle != 0 and row_in_middle != (n-1):
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn
     
     # If cell is in right row and top
-    elif centre_row == 0 and centre_column == (n-1):
-        top_row = centre_row
-        bottom_row = centre_row + 1
-        right_col = centre_column
-        left_col = centre_column - 1
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell 
+    elif row_in_middle == 0 and col_in_middleumn == (n-1):
+        top_row = row_in_middle
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn
+        left_col = col_in_middleumn - 1
 
     # If cell is in right row and bottom
-    elif centre_column == (n-1) and centre_row == n-1:
-        top_row = centre_row - 1
-        bottom_row = centre_row
-        right_col = centre_column
-        left_col = centre_column - 1
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell
+    elif col_in_middleumn == (n-1) and row_in_middle == n-1:
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle
+        right_col = col_in_middleumn
+        left_col = col_in_middleumn - 1
     
     # If cell is in bottom row and left
-    elif centre_row == (n-1) and centre_column == 0:
-        top_row = centre_row - 1
-        bottom_row = centre_row
-        right_col = centre_column + 1
-        left_col = centre_column 
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell
+    elif row_in_middle == (n-1) and col_in_middleumn == 0:
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn 
     
     # If cell is in top row and left
-    elif centre_row == 0 and centre_column == 0:
-        top_row = centre_row
-        bottom_row = centre_row + 1
-        right_col = centre_column + 1
-        left_col = centre_column 
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell
+    elif row_in_middle == 0 and col_in_middleumn == 0:
+        top_row = row_in_middle
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn 
 
+    # If the cell is anywhere else on the board
     else:
-        top_row = centre_row - 1
-        bottom_row = centre_row + 1
-        right_col = centre_column + 1
-        left_col = centre_column - 1
+        top_row = row_in_middle - 1
+        bottom_row = row_in_middle + 1
+        right_col = col_in_middleumn + 1
+        left_col = col_in_middleumn - 1
         
-        for row_idx in range(top_row, bottom_row + 1):
-            for col_idx in range(left_col, right_col + 1):
-                subgrid_row = row_idx - centre_row + 1
-                subgrid_col = col_idx - centre_column + 1
-                subcell = grid_pattern[subgrid_row][subgrid_col]
-                if subcell == 'W':
-                    config[row_idx][col_idx] = subcell  
+    # Go through the cell surroundings and assign Water near it
+    for row_idx in range(top_row, bottom_row + 1):
+        for col_idx in range(left_col, right_col + 1):
+            subgrid_row = row_idx - row_in_middle + 1
+            subgrid_col = col_idx - col_in_middleumn + 1
+            subcell = grid_pattern[subgrid_row][subgrid_col]
+            if subcell == 'W':
+                config[row_idx][col_idx] = subcell  
 
     return config
 
+# Proprocessing function which autofills water near given ships and rows and columns with 0 ships
 def autofill(config):
     updated_config = copy.deepcopy(config)
     for row_index in range(n):
@@ -220,7 +162,41 @@ def autofill(config):
             if row_line[row_index] == 0 or col_line[col_index] == 0:
                 if updated_config[row_index][col_index] == '0':
                     updated_config[row_index][col_index] = 'W'
-    
+
+    return updated_config
+
+'''# Assign variables
+def assign_variable(config):
+    assignments = {}
+    for i in range(n):
+        for j in range(n):
+            assignments += ((i, j), config[i][j])
+
+    return assignments'''
+
+def fill_x(config):
+    updated_config = copy.deepcopy(config)
+    for i in range(n):
+        for j in range(n):
+            if updated_config[i][j] == '0' and row_line[i] == 1 and col_line[j] == 1:
+                updated_config[i][j] == 'S'
+                row_line[i] -= 1
+                col_line[j] -= 1
+
     return np.array(updated_config)
 
-print(autofill(board))
+# Check for solution
+def is_solved(config):
+    for i in range(n):
+        for j in range(n):
+            if config[i][j] == '0':
+                return False
+    return True
+
+# FC 
+def fc(config):
+    updated_config = copy.deepcopy(config)
+
+    return updated_config
+
+print(np.array(autofill(board)))
