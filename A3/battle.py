@@ -1,6 +1,7 @@
 # Import necessary libraries
 import sys
 import copy
+from turtle import update
 import numpy as np
 
 # Set the two parameters to pass in
@@ -29,13 +30,13 @@ col_line = [int(n) for n in col_line]
 num_submarines, num_destroyers, num_cruisers, num_battleships = 0, 0, 0, 0
 for i in range(len(ship_line)):
     if i == 0:
-        num_submarines = ship_line[i]
+        num_submarines = int(ship_line[i])
     if i == 1:
-        num_destroyers = ship_line[i]
+        num_destroyers = int(ship_line[i])
     if i == 2:
-        num_cruisers = ship_line[i]
+        num_cruisers = int(ship_line[i])
     if i == 3:
-        num_battleships = ship_line[i]
+        num_battleships = int(ship_line[i])
 
 # Get the n for the nxn board configuration
 n = len(board_lines)
@@ -43,14 +44,14 @@ n = len(board_lines)
 # Store the board into a list of list while stripping white spaces
 board = [list(i.strip()) for i in board_lines]
 
-# Function that finds the coordinates of a specific digit given the configuration
-def coordinates_locater(config, digit):
-    index = []
+def existing_submarines(config, num_submarines):
     for i in range(n):
         for j in range(n):
-            if config[i][j] == digit:
-                index.append((i, j))
-    return index
+            if config[i][j] == 'S':
+                num_submarines = num_submarines - 1
+    return num_submarines
+
+num_submarines = existing_submarines(board, num_submarines)
 
 # Variable declaration
 ship_pieces = ['S', 'L', 'R', 'T', 'B', 'M']
@@ -204,13 +205,17 @@ def reduce_bottom_corners(config, domains):
         y, x = i[0], i[1]
         if y == n-1 and x == n-1:
             domains[i] = ['S', 'W', 'L', 'B', 'R']
-            if config[y-1][x] == 'W':
+            if config[y-1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y-1][x] == 'W':
                 domains[i] = ['S', 'W', 'R']
             elif config[y][x-1] == 'W':
                 domains[i] = ['S', 'W', 'B']
         elif y == n-1 and x == 0:
             domains[i] = ['S', 'W', 'L', 'B', 'R']
-            if config[y-1][x] == 'W':
+            if config[y-1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y-1][x] == 'W':
                 domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W':
                 domains[i] = ['S', 'W', 'B']
@@ -222,28 +227,68 @@ def reduce_sides(config, domains):
         y, x = i[0], i[1]
         if x == 0 and y > 0 and y < n-1:
             domains[i] = ['S', 'W', 'L', 'T', 'B', 'M']
-            if config[y+1][x] == 'W':
+            if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L']
+            elif config[y+1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'B']
+            elif config[y-1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T']
+            elif config[y+1][x] == 'W':
                 domains[i] = ['S', 'W', 'B', 'L']
             elif config[y-1][x] == 'W':
                 domains[i] = ['S', 'W', 'T', 'L']
+            elif config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'B', 'M']
         elif x == n-1 and y > 0 and y < n-1:
             domains[i] = ['S', 'W', 'R', 'T', 'B', 'M']
-            if config[y+1][x] == 'W':
+            if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'R']
+            elif config[y+1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'B']
+            elif config[y-1][x] == 'W' and config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'T']
+            elif config[y+1][x] == 'W':
                 domains[i] = ['S', 'W', 'B', 'R']
             elif config[y-1][x] == 'W':
                 domains[i] = ['S', 'W', 'T', 'R']
+            elif config[y][x-1] == 'W':
+                domains[i] = ['S', 'W', 'T', 'B', 'M']
         elif y == n-1 and x > 0 and x < n-1:
             domains[i] = ['S', 'W', 'R', 'L', 'B', 'M']
-            if config[y][x-1] == 'W':
+            if config[y][x-1] == 'W' and config[y][x+1] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'B']
+            elif config[y][x-1] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L']
+            elif config[y][x+1] == 'W' and config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'R']
+            elif config[y][x-1] == 'W':
                 domains[i] = ['S', 'W', 'B', 'L']
             elif config[y][x+1] == 'W':
                 domains[i] = ['S', 'W', 'B', 'R']
+            elif config[y-1][x] == 'W':
+                domains[i] = ['S', 'W', 'L', 'R', 'M']
         elif y == 0 and x > 0 and x < n-1:
             domains[i] = ['S', 'W', 'R', 'L', 'T', 'M']
-            if config[y][x-1] == 'W':
+            if config[y][x-1] == 'W' and config[y][x+1] == 'W' and config[y+1][x] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W', 'T']
+            elif config[y][x-1] == 'W' and config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'L']
+            elif config[y][x+1] == 'W' and config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'R']
+            elif config[y][x-1] == 'W':
                 domains[i] = ['S', 'W', 'T', 'L']
             elif config[y][x+1] == 'W':
                 domains[i] = ['S', 'W', 'T', 'R']
+            elif config[y+1][x] == 'W':
+                domains[i] = ['S', 'W', 'L', 'R', 'M']
     return domains
 
 # Reduce middle board constraints
@@ -283,6 +328,9 @@ def is_solved(config):
                 return False
     return True
 
+def MRV(domains):
+    return dict(sorted(domains.items(), key=lambda i: -len(i[1]), reverse=True))
+
 # FC 
 def fc(config):
     updated_config = copy.deepcopy(config)
@@ -297,4 +345,33 @@ domains = reduce_top_corners(board, domains)
 domains = reduce_bottom_corners(board, domains)
 domains = reduce_sides(board, domains)
 domains = reduce_middle_board(board, domains)
+domains = MRV(domains)
 print(domains)
+
+print(num_submarines, num_destroyers, num_cruisers, num_battleships)
+
+def check_row(config, row_index, num_submarines):
+    row_spot = config[row_index]
+    if row_spot == 'S':
+        num_submarines = num_submarines - 1
+        row_line[row_index] = row_line[row_index] - 1
+    
+    return True
+
+def BT(config, domains, num_submarines, num_destroyers, num_cruisers, num_battleships):
+    updated_config = copy.deepcopy(config)
+    
+    if is_solved == True:
+        return updated_config
+    
+    for i in domains:
+        y, x = i[0], i[1]
+        for j in domains[i]:
+            '''if check_row(updated_config, i[0], num_submarines):
+                updated_config[y][x] = j'''
+
+
+    return updated_config
+
+board = BT(board, domains, num_submarines, num_destroyers, num_cruisers, num_battleships)
+print(np.array(board))
