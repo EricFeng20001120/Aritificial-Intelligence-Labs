@@ -1,7 +1,6 @@
 # Import necessary libraries
 import sys
 import copy
-from turtle import update
 import numpy as np
 
 # Set the two parameters to pass in
@@ -344,46 +343,66 @@ def fc(config):
 board = autofill(board)
 assignments, domains = assign_variable(board)
 
-print(np.array(board))
 domains = reduce_top_corners(board, domains)
 domains = reduce_bottom_corners(board, domains)
 domains = reduce_sides(board, domains)
 domains = reduce_middle_board(board, domains)
 domains = MRV(domains)
-print(domains)
 
 print(num_submarines, num_destroyers, num_cruisers, num_battleships)
 
-def check_row(config, row_index, num_submarines):
-    row_spot = config[row_index]
-    if row_spot == 'S':
-        num_submarines = num_submarines - 1
-        row_line[row_index] = row_line[row_index] - 1
-    
-    return True
-
-def row_constraint(config, row_idx, domain_value, row_line, num_submarines):
-    if domain_value == 'S':
-        row_line[row_idx] -= 1
-        num_submarines -= 1
+def ship_check(config, row_idx, col_idx, domain_value, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
 
     return True
 
+def row_col_constraint(config, row_idx, col_idx, domain_value, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+    #config[row_idx][col_idx] 
+
+    return True
+
+def find_row_cells(domains, row_idx):
+    keys_list = []
+    keys_list = list(domains.keys())
+
+    row_cells = []
+
+    for i in keys_list:
+        if i[0] == row_idx:
+            row_cells.append(i)
+
+    return row_cells
+
+def find_col_cells(domains, col_idx):
+    keys_list = []
+    keys_list = list(domains.keys())
+
+    col_cells = []
+
+    for i in keys_list:
+        if i[1] == col_idx:
+            col_cells.append(i)
+
+    return col_cells
 
 def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
     updated_config = copy.deepcopy(config)
+    new_row_line = copy.deepcopy(row_line)
+    new_col_line = copy.deepcopy(col_line)
     
     if is_solved == True:
         return updated_config
-    
+
     for i in domains:
         y, x = i[0], i[1]
+        row_cells = find_row_cells(domains, y)
+        col_cells = find_col_cells(domains, x)
         for j in domains[i]:
             pass
-            '''if check_row(updated_config, i[0], num_submarines):
-                updated_config[y][x] = j'''
+            #print(ship_check(updated_config, i[0], i[1], j, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships))
+            #row_col_constraint(updated_config, y, x, j, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
 
-
+    print("Domains:")
+    print(domains)
     return updated_config
 
 board = BT(board, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
