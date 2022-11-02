@@ -187,13 +187,17 @@ def reduce_top_corners(config, domains):
         y, x = i[0], i[1]
         if y == 0 and x == 0:
             domains[i] = ['S', 'W', 'L', 'T', 'R']
-            if config[y+1][x] == 'W':
+            if config[y+1][x] == 'W' and config[y][x+1] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y+1][x] == 'W':
                 domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W':
                 domains[i] = ['S', 'W', 'T']
         elif y == 0 and x == n-1:
             domains[i] = ['S', 'W', 'L', 'T', 'R']
-            if config[y][x-1] == 'W':
+            if config[y][x-1] == 'W' and config[y+1][x] == 'W':
+                domains[i] = ['S', 'W']
+            elif config[y][x-1] == 'W':
                 domains[i] = ['S', 'W', 'T']
             elif config[y+1][x] == 'W':
                 domains[i] = ['S', 'W', 'R']
@@ -358,7 +362,15 @@ def check_row(config, row_index, num_submarines):
     
     return True
 
-def BT(config, domains, num_submarines, num_destroyers, num_cruisers, num_battleships):
+def row_constraint(config, row_idx, domain_value, row_line, num_submarines):
+    if domain_value == 'S':
+        row_line[row_idx] -= 1
+        num_submarines -= 1
+
+    return True
+
+
+def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
     updated_config = copy.deepcopy(config)
     
     if is_solved == True:
@@ -367,11 +379,12 @@ def BT(config, domains, num_submarines, num_destroyers, num_cruisers, num_battle
     for i in domains:
         y, x = i[0], i[1]
         for j in domains[i]:
+            pass
             '''if check_row(updated_config, i[0], num_submarines):
                 updated_config[y][x] = j'''
 
 
     return updated_config
 
-board = BT(board, domains, num_submarines, num_destroyers, num_cruisers, num_battleships)
+board = BT(board, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
 print(np.array(board))
