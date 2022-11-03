@@ -24,7 +24,9 @@ del row_line[-1], col_line[-1], ship_line[-1]
 
 # Convert characters in row and col line into integers
 row_line = [int(n) for n in row_line]
+second_row_line = [int(n) for n in row_line]
 col_line = [int(n) for n in col_line]
+second_col_line = [int(n) for n in col_line]
 
 # Get the number of ships per the ship line
 num_submarines, num_destroyers, num_cruisers, num_battleships = 0, 0, 0, 0
@@ -346,7 +348,7 @@ cell_domains = MRV(cell_domains)
 
 print(num_submarines, num_destroyers, num_cruisers, num_battleships)
 
-# Ship domains
+'''# Ship domains
 def ship_domains(config, ship_domain): 
     for i in range(n):
         for j in range(n):
@@ -388,56 +390,84 @@ if num_cruisers == 0:
 if num_destroyers == 0:
     del ship_domain["D"]
 if num_battleships == 0:
-    del ship_domain["B"]
+    del ship_domain["B"]'''
 
-print(ship_domain)
+def check_row_constraint(config):
+    total = []
+    for row in range(n):
+        total.append(n-config[row].count('W'))
+    for i in range(n):
+        if total[i] != second_row_line[i]:
+            return False
+    return True
 
-def check_row_constraint(config, row_num):
-    """ check if the current board falsify the row constraint"""
-    row = config[row_num]
-    total = len(row)
-    for i in range(len(row)):
-        if row[i] == '0' or row[i] == 'W':
-            total -= 1
-    if total == row_line[row_num]:
-        return True
-    else:
-        return False
+def check_col_constraint(config):
+    config = np.array(config)
+    col = []
+    for i in range(n):
+        col.append(config[:,i])
+    total = []
+    col_lst = []
+    for i in col:
+        col_lst.append(list(i))
+    for i in range(n):
+        total.append(n-col_lst[i].count('W'))
+    for i in range(n):
+        if total[i] != second_col_line[i]:
+            return False
+    print("Hey")
+    return True
 
-def check_col_const(config, col_num):
-    """ check if the current board falsify the col constraint"""
-    col = [config[i][col_num] for i in range(len(config))]
-    total = len(col)
-    for i in range(len(col)):
-        if col[i] == '0' or col[i] == 'W':
-            total -= 1
-    if total == col_line[col_num]:
-        return True
-    else:
-        return False
+def successors(config, cell_domains):
+    path = []
+    for i in cell_domains:
+        y = i[0]
+        x = i[1]
+        potential_values_for_cell = cell_domains.get(i)
+        for pot in potential_values_for_cell:
+            for j in cell_domains:
+                second_y = j[0]
+                second_x = j[1]
+                for pot2 in cell_domains.get(j):
+                    if i != j and (y,x) == (3,5):
+                        config[y][x] = pot
+                        config[second_y][second_x] = pot2
+                        print(np.array(config))
+                        if check_col_constraint(config) == True:  
+                            path.append(config)
+    return path     
 
-def BT(config, cell_domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+def BT(config, cell_domains):
     updated_config = copy.deepcopy(config)
-    new_row_line = copy.deepcopy(row_line)
-    new_col_line = copy.deepcopy(col_line)
     
     if is_solved == True:
         return updated_config
 
-    for i in cell_domains:
-        y, x = i[0], i[1]
-        potential_values_for_cell = cell_domains.get(i)
-        print(potential_values_for_cell)
-        for j in potential_values_for_cell:
-            updated_config[y][x] = j
+    successor_nodes = successors(config, cell_domains)
+    print(len(successor_nodes))
 
     print("cell_domains:")
     print(cell_domains)
-    return updated_config
+    return config
 
+board = BT(board, cell_domains)
 print(np.array(board))
-board = BT(board, cell_domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
-print(np.array(board))
+
+'''path = []
+for i in cell_domains:
+    y = i[0]
+    x = i[1]
+    potential_values_for_cell = cell_domains.get(i)
+    for pot in potential_values_for_cell:
+        for j in cell_domains:
+            second_y = j[0]
+            second_x = j[1]
+            for pot2 in cell_domains.get(j):
+                if i != j:
+                    board[y][x] = pot
+                    board[second_y][second_x] = pot2
+                    if check_row_constraint(board) == True:  
+                        path.append(board)'''
 
 # Output the file
 output = open(output_file, "w")
@@ -445,3 +475,4 @@ for i in range(n):
     for j in range(n):
         output.write((str(board[i][j])))
     output.write("\n")
+
