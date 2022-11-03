@@ -2,7 +2,6 @@
 import sys
 import copy
 import numpy as np
-import string
 from constraint import *
 
 # Set the two parameters to pass in
@@ -53,8 +52,6 @@ def existing_submarines(config, num_submarines):
     return num_submarines
 
 num_submarines = existing_submarines(board, num_submarines)
-
-print(board)
 
 # Variable declaration
 ship_pieces = ['S', 'L', 'R', 'T', 'B', 'M']
@@ -170,7 +167,7 @@ def autofill(config):
 
     return updated_config
 
-# Assign variables and domains
+# Assign variables and cell_domains
 def assign_variable(config):
     # Create dictionary to store i, j indexes for cell-based assignments
     assignments = []
@@ -185,147 +182,147 @@ def assign_variable(config):
     return assignments, domain
 
 # Reduce top row constraints
-def reduce_top_corners(config, domains):
-    for i in domains:
+def reduce_top_corners(config, cell_domains):
+    for i in cell_domains:
         y, x = i[0], i[1]
         if y == 0 and x == 0:
-            domains[i] = ['S', 'W', 'L', 'T', 'R']
+            cell_domains[i] = ['S', 'W', 'L', 'T', 'R']
             if config[y+1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'L']
+                cell_domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T']
+                cell_domains[i] = ['S', 'W', 'T']
         elif y == 0 and x == n-1:
-            domains[i] = ['S', 'W', 'L', 'T', 'R']
+            cell_domains[i] = ['S', 'W', 'L', 'T', 'R']
             if config[y][x-1] == 'W' and config[y+1][x] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'T']
+                cell_domains[i] = ['S', 'W', 'T']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'R']
-    return domains
+                cell_domains[i] = ['S', 'W', 'R']
+    return cell_domains
 
 # Reduce bottom row constraints
-def reduce_bottom_corners(config, domains):
-    for i in domains:
+def reduce_bottom_corners(config, cell_domains):
+    for i in cell_domains:
         y, x = i[0], i[1]
         if y == n-1 and x == n-1:
-            domains[i] = ['S', 'W', 'L', 'B', 'R']
+            cell_domains[i] = ['S', 'W', 'B', 'R']
             if config[y-1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'R']
+                cell_domains[i] = ['S', 'W', 'R']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'B']
+                cell_domains[i] = ['S', 'W', 'B']
         elif y == n-1 and x == 0:
-            domains[i] = ['S', 'W', 'L', 'B', 'R']
+            cell_domains[i] = ['S', 'W', 'L', 'B']
             if config[y-1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L']
+                cell_domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'B']
-    return domains
+                cell_domains[i] = ['S', 'W', 'B']
+    return cell_domains
 
 # Reduce side constraints
-def reduce_sides(config, domains):
-    for i in domains:
+def reduce_sides(config, cell_domains):
+    for i in cell_domains:
         y, x = i[0], i[1]
         if x == 0 and y > 0 and y < n-1:
-            domains[i] = ['S', 'W', 'L', 'T', 'B', 'M']
+            cell_domains[i] = ['S', 'W', 'L', 'T', 'B', 'M']
             if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L']
+                cell_domains[i] = ['S', 'W', 'L']
             elif config[y+1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'B']
+                cell_domains[i] = ['S', 'W', 'B']
             elif config[y-1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T']
+                cell_domains[i] = ['S', 'W', 'T']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'B', 'L']
+                cell_domains[i] = ['S', 'W', 'B', 'L']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'T', 'L']
+                cell_domains[i] = ['S', 'W', 'T', 'L']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'B', 'M']
+                cell_domains[i] = ['S', 'W', 'T', 'B', 'M']
         elif x == n-1 and y > 0 and y < n-1:
-            domains[i] = ['S', 'W', 'R', 'T', 'B', 'M']
+            cell_domains[i] = ['S', 'W', 'R', 'T', 'B', 'M']
             if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'R']
+                cell_domains[i] = ['S', 'W', 'R']
             elif config[y+1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'B']
+                cell_domains[i] = ['S', 'W', 'B']
             elif config[y-1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'T']
+                cell_domains[i] = ['S', 'W', 'T']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'B', 'R']
+                cell_domains[i] = ['S', 'W', 'B', 'R']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'T', 'R']
+                cell_domains[i] = ['S', 'W', 'T', 'R']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'B', 'M']
+                cell_domains[i] = ['S', 'W', 'T', 'B', 'M']
         elif y == n-1 and x > 0 and x < n-1:
-            domains[i] = ['S', 'W', 'R', 'L', 'B', 'M']
+            cell_domains[i] = ['S', 'W', 'R', 'L', 'B', 'M']
             if config[y][x-1] == 'W' and config[y][x+1] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'B']
+                cell_domains[i] = ['S', 'W', 'B']
             elif config[y][x-1] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L']
+                cell_domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'R']
+                cell_domains[i] = ['S', 'W', 'R']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'B', 'L']
+                cell_domains[i] = ['S', 'W', 'B', 'L']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'B', 'R']
+                cell_domains[i] = ['S', 'W', 'B', 'R']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L', 'R', 'M']
+                cell_domains[i] = ['S', 'W', 'L', 'R', 'M']
         elif y == 0 and x > 0 and x < n-1:
-            domains[i] = ['S', 'W', 'R', 'L', 'T', 'M']
+            cell_domains[i] = ['S', 'W', 'R', 'L', 'T', 'M']
             if config[y][x-1] == 'W' and config[y][x+1] == 'W' and config[y+1][x] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T']
+                cell_domains[i] = ['S', 'W', 'T']
             elif config[y][x-1] == 'W' and config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'L']
+                cell_domains[i] = ['S', 'W', 'L']
             elif config[y][x+1] == 'W' and config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'R']
+                cell_domains[i] = ['S', 'W', 'R']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'L']
+                cell_domains[i] = ['S', 'W', 'T', 'L']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'R']
+                cell_domains[i] = ['S', 'W', 'T', 'R']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'L', 'R', 'M']
-    return domains
+                cell_domains[i] = ['S', 'W', 'L', 'R', 'M']
+    return cell_domains
 
 # Reduce middle board constraints
-def reduce_middle_board(config, domains):
-    for i in domains:
+def reduce_middle_board(config, cell_domains):
+    for i in cell_domains:
         y, x = i[0], i[1]
         if x > 0 and x < n-1 and y > 0 and y < n-1:
             if config[y+1][x] == 'W' and config[y-1][x] == 'W' and config[y][x-1] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W']
+                cell_domains[i] = ['S', 'W']
             elif config[y+1][x] == 'W' and config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L', 'R', 'M']
+                cell_domains[i] = ['S', 'W', 'L', 'R', 'M']
             elif config[y][x-1] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'B', 'M']
+                cell_domains[i] = ['S', 'W', 'T', 'B', 'M']
             elif config[y-1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'R']
+                cell_domains[i] = ['S', 'W', 'T', 'R']
             elif config[y+1][x] == 'W' and config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'B', 'R']
+                cell_domains[i] = ['S', 'W', 'B', 'R']
             elif config[y-1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'T', 'L']
+                cell_domains[i] = ['S', 'W', 'T', 'L']
             elif config[y+1][x] == 'W' and config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'B', 'L']
+                cell_domains[i] = ['S', 'W', 'B', 'L']
             elif config[y-1][x] == 'W':
-                domains[i] = ['S', 'W', 'L', 'R', 'M', 'T']
+                cell_domains[i] = ['S', 'W', 'L', 'R', 'M', 'T']
             elif config[y+1][x] == 'W':
-                domains[i] = ['S', 'W', 'L', 'R', 'M', 'B']
+                cell_domains[i] = ['S', 'W', 'L', 'R', 'M', 'B']
             elif config[y][x-1] == 'W':
-                domains[i] = ['S', 'W', 'L', 'T', 'M', 'B']
+                cell_domains[i] = ['S', 'W', 'L', 'T', 'M', 'B']
             elif config[y][x+1] == 'W':
-                domains[i] = ['S', 'W', 'R', 'T', 'M', 'B']
-    return domains
+                cell_domains[i] = ['S', 'W', 'R', 'T', 'M', 'B']
+    return cell_domains
 
 # Check for solution
 def is_solved(config):
@@ -335,58 +332,91 @@ def is_solved(config):
                 return False
     return True
 
-def MRV(domains):
-    return dict(sorted(domains.items(), key=lambda i: -len(i[1]), reverse=True))
+def MRV(cell_domains):
+    return dict(sorted(cell_domains.items(), key=lambda i: -len(i[1]), reverse=True))
 
 board = autofill(board)
-assignments, domains = assign_variable(board)
+assignments, cell_domains = assign_variable(board)
 
-domains = reduce_top_corners(board, domains)
-domains = reduce_bottom_corners(board, domains)
-domains = reduce_sides(board, domains)
-domains = reduce_middle_board(board, domains)
-domains = MRV(domains)
+cell_domains = reduce_top_corners(board, cell_domains)
+cell_domains = reduce_bottom_corners(board, cell_domains)
+cell_domains = reduce_sides(board, cell_domains)
+cell_domains = reduce_middle_board(board, cell_domains)
+cell_domains = MRV(cell_domains)
 
 print(num_submarines, num_destroyers, num_cruisers, num_battleships)
 
-def find_row_cells(domains, row_idx):
-    keys_list = []
-    keys_list = list(domains.keys())
+# Ship domains
+def ship_domains(config, ship_domain): 
+    for i in range(n):
+        for j in range(n):
+            if j <= n-4 and config[i][j] == '0' and config[i][j+1] == '0' and config[i][j+2] == '0' and config[i][j+3] == '0':
+                # Horizontal 4x1
+                ship_domain["B"].append([[i, j], [i, j+1], [i, j+2], [i, j+3]])
+            if i <= n-4 and config[i][j] == '0' and config[i+1][j] == '0' and config[i+2][j] == '0' and config[i+3][j] == '0':
+                # Vertical 4x1
+                ship_domain["B"].append([[i, j], [i+1, j], [i+2, j], [i+3, j]])
+            if j <= n-3 and config[i][j] == '0' and config[i][j+1] == '0' and config[i][j+2] == '0':
+                # Horizontal 3x1
+                ship_domain["C"].append([[i, j], [i, j+1], [i, j+2]])
+            if i <= n-3 and config[i][j] == '0' and config[i+1][j] == '0' and config[i+2][j] == '0':
+                # Vertical 3x1
+                ship_domain["C"].append([[i, j], [i+1, j], [i+2, j]])
+            if i <= n-2 and config[i][j] == '0' and config[i+1][j] == '0':
+                # Vertical 2x1
+                ship_domain["D"].append([[i, j], [i+1, j]])
+            if j <= n-2 and config[i][j] == '0' and config[i][j+1] == '0':
+                # Horizontal 2x1
+                ship_domain["D"].append([[i, j], [i, j+1]])
+            if config[i][j] == '0':
+                # Submarine 1x1
+                ship_domain["S"].append([[i, j]])
+    return ship_domain
 
-    row_cells = {}
+ship_domain = {}
+ship_domain["S"] = []
+ship_domain["D"] = []
+ship_domain["C"] = []
+ship_domain["B"] = []
 
-    for i in keys_list:
-        if i[0] == row_idx:
-            row_cells[i] = domains.get(i)
+ship_domain = ship_domains(board,ship_domain)
 
-    return row_cells
+if num_submarines == 0:
+    del ship_domain["S"]
+if num_cruisers == 0:
+    del ship_domain["C"]
+if num_destroyers == 0:
+    del ship_domain["D"]
+if num_battleships == 0:
+    del ship_domain["B"]
 
-def find_col_cells(domains, col_idx):
-    keys_list = []
-    keys_list = list(domains.keys())
+print(ship_domain)
 
-    col_cells = {}
+def check_row_constraint(config, row_num):
+    """ check if the current board falsify the row constraint"""
+    row = config[row_num]
+    total = len(row)
+    for i in range(len(row)):
+        if row[i] == '0' or row[i] == 'W':
+            total -= 1
+    if total == row_line[row_num]:
+        return True
+    else:
+        return False
 
-    for i in keys_list:
-        if i[1] == col_idx:
-            col_cells[i] = domains.get(i)
+def check_col_const(config, col_num):
+    """ check if the current board falsify the col constraint"""
+    col = [config[i][col_num] for i in range(len(config))]
+    total = len(col)
+    for i in range(len(col)):
+        if col[i] == '0' or col[i] == 'W':
+            total -= 1
+    if total == col_line[col_num]:
+        return True
+    else:
+        return False
 
-    return col_cells
-
-def ship_check(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
-
-    return True
-
-def row_col_constraint(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
-
-    if row_line[row_idx] > 0 and col_line[col_idx] > 0:
-        if ship_check(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
-            row_line[row_idx] -= 1
-            col_line[col_idx] -= 1
-
-    return True
-
-def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+def BT(config, cell_domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
     updated_config = copy.deepcopy(config)
     new_row_line = copy.deepcopy(row_line)
     new_col_line = copy.deepcopy(col_line)
@@ -394,50 +424,24 @@ def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_
     if is_solved == True:
         return updated_config
 
-    for i in domains:
+    for i in cell_domains:
         y, x = i[0], i[1]
-        row_cells = find_row_cells(domains, y)
-        col_cells = find_col_cells(domains, x)
-        for j in domains[i]:
-            row_col_constraint(updated_config, y, x, j, row_cells, col_cells, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
-            #print(ship_check(updated_config, i[0], i[1], j, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships))
+        potential_values_for_cell = cell_domains.get(i)
+        print(potential_values_for_cell)
+        for j in potential_values_for_cell:
+            updated_config[y][x] = j
 
-    print("Domains:")
-    print(domains)
+    print("cell_domains:")
+    print(cell_domains)
     return updated_config
 
-board = BT(board, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
-#print(np.array(board))
+print(np.array(board))
+board = BT(board, cell_domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
+print(np.array(board))
 
-def row_col(config, domains, row_line, col_line):
-    updated_config = copy.deepcopy(config)
-    
-    for i in domains:
-        y, x = i[0], i[1]
-        row_cells = find_row_cells(domains, y)
-        col_cells = find_col_cells(domains, x)
-        for j in i:
-            pass
-
-    return updated_config
-
-print(np.array(row_col(board, domains, row_line, col_line)))
-
-rownames = list(range(n))
-colnames = [*string.ascii_letters[0:n]]
-
-rows = []
-for i in rownames:
-    row = []
-    for j in colnames:
-        row.append(j+str(i))
-    rows.append(row)
-
-problem = Problem()
-for i, row in enumerate(rows):
-    for j, col in enumerate(row):
-        print([i,j])
-        if (i, j) in list(domains.keys()):
-            problem.addVariable(col, list(range(1, n)) if board[i][j] == 0 else [board[i][j]])
-
-print(problem.getSolutions())
+# Output the file
+output = open(output_file, "w")
+for i in range(n):
+    for j in range(n):
+        output.write((str(board[i][j])))
+    output.write("\n")

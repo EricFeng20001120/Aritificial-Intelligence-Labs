@@ -1,848 +1,624 @@
-import constraint as csp
-
-class BacktrackingBimaruSolver(csp.Solver):
-    """
-    Bimaru solver with backtracking capabilities
-    Examples:
-    >>> result = [[('a', 1), ('b', 2)],
-    ...           [('a', 1), ('b', 3)],
-    ...           [('a', 2), ('b', 3)]]
-    >>> problem = Problem(BacktrackingSolver())
-    >>> problem.addVariables(["a", "b"], [1, 2, 3])
-    >>> problem.addConstraint(lambda a, b: b > a, ["a", "b"])
-    >>> solution = problem.getSolution()
-    >>> sorted(solution.items()) in result
-    True
-    >>> for solution in problem.getSolutionIter():
-    ...     sorted(solution.items()) in result
-    True
-    True
-    True
-    >>> for solution in problem.getSolutions():
-    ...     sorted(solution.items()) in result
-    True
-    True
-    True
-    """
-
-    def __init__(self, neighbourLookupTable, forwardcheck=True):
-        """
-        @param forwardcheck: If false forward checking will not be requested
-                             to constraints while looking for solutions
-                             (default is true)
-        @type  forwardcheck: bool
-        """
-
-        self._forwardcheck = forwardcheck
-        self._neighbourLookupTable = neighbourLookupTable
-    
-    def isNeighbourOfAssignedVar(self, variable, assignedVariables):
-        for neighbour in self._neighbourLookupTable[variable]:
-            if neighbour in assignedVariables:
-                return 0
-        return 1
-        
-    def getSolutionIter(self, domains, constraints, vconstraints):
-        forwardcheck = self._forwardcheck
-        assignments = {}
-
-        queue = []
-
-        while True:
-            assignedVariables = []
-            for var, value in assignments.items():
-                if value != 7:
-                    assignedVariables.append(var)
-
-            lst = [
-                (
-                    # Minimum Remaing Values (MRV)
-                    len(domains[variable]),
-
-                    # 8-Neighbours
-                    self.isNeighbourOfAssignedVar(variable, assignedVariables),
-
-                    # Degree heuristic
-                    -len(vconstraints[variable]),
-
-                    # Actual variable
-                    variable,
-                )
-                for variable in domains
-            ]
-            lst.sort()
-            for item in lst:
-                if item[-1] not in assignments:
-                    # Found unassigned variable
-                    variable = item[-1]
-                    values = domains[variable][:]
-                    if forwardcheck:
-                        pushdomains = [
-                            domains[x]
-                            for x in domains
-                            if x not in assignments and x != variable
-                        ]
-                    else:
-                        pushdomains = None
-                    break
-            else:
-                # No unassigned variables. We've got a solution. Go back
-                # to last variable, if there's one.
-                yield assignments.copy()
-                if not queue:
-                    return
-                variable, values, pushdomains = queue.pop()
-                if pushdomains:
-                    for domain in pushdomains:
-                        domain.popState()
-
-            while True:
-                # We have a variable. Do we have any values left?
-                if not values:
-                    # No. Go back to last variable, if there's one.
-                    del assignments[variable]
-                    while queue:
-                        variable, values, pushdomains = queue.pop()
-                        if pushdomains:
-                            for domain in pushdomains:
-                                domain.popState()
-                        if values:
-                            break
-                        del assignments[variable]
-                    else:
-                        return
-
-                # Got a value. Check it.
-                assignments[variable] = values.pop()
-
-                if pushdomains:
-                    for domain in pushdomains:
-                        domain.pushState()
-
-                for constraint, variables in vconstraints[variable]:
-                    if not constraint(variables, domains, assignments, pushdomains):
-                        # Value is not good.
-                        break
-                else:
-                    break
-
-                if pushdomains:
-                    for domain in pushdomains:
-                        domain.popState()
-
-            # Push state before looking for next variable.
-            queue.append((variable, values, pushdomains))
-
-        raise RuntimeError("Can't happen")
-
-    def getSolution(self, domains, constraints, vconstraints):
-        iter = self.getSolutionIter(domains, constraints, vconstraints)
-        try:
-            return next(iter)
-        except StopIteration:
-            return None
-
-    def getSolutions(self, domains, constraints, vconstraints):
-        return list(self.getSolutionIter(domains, constraints, vconstraints))
-
-# -*- coding: utf-8 -*-
-
-import time
-import string
+"""Assignment 3 - CSP battleship"""
 import math
-from random import randrange
-from itertools import chain
-import constraint as csp
 import sys
+from heapq import heappush, heappop
+from dataclasses import dataclass, field
+from typing import Any
 
-# ------------------------------------------------------------------------------
-# Bimaru to solve (add "0" where no number is given)
-# ------------------------------------------------------------------------------
-
-debugAssigned = False
-
-bow_up = 1
-bow_right = 2
-bow_down = 3
-bow_left = 4
-center = 5
-single = 6
-water = 7
-
-# puzzle from instructions
-# puzzle = [
-#     [0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 5, 0, 0],
-#     [0, 7, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0],
-#     [0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0],
-# ]
-
-# parts_in_row = [3, 2, 2, 0, 2, 1]
-# parts_in_col = [0, 4, 0, 3, 1, 2]
-
-# target_boat_single = 3
-# target_boat_double = 2
-# target_boat_triple = 1
-# target_boat_quadrouple = 0
-
-# Solution to instruction puzzle
-# solution = [
-#     [7, 1, 7, 1, 7, 6],
-#     [7, 3, 7, 5, 7, 7],
-#     [7, 7, 7, 3, 7, 6],
-#     [7, 7, 7, 7, 7, 7],
-#     [7, 1, 7, 7, 6, 7],
-#     [7, 3, 7, 7, 7, 7],
-# ]
-
-# "Easy" puzzle
-'''puzzle = [
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [6, 0, 3, 0, 7, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 6, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-]'''
-
-# solution = [
-#     [7, 7, 7, 7, 6, 7, 4, 2],
-#     [7, 7, 1, 7, 7, 7, 7, 7],
-#     [6, 7, 3, 7, 7, 4, 5, 2],
-#     [7, 7, 7, 7, 7, 7, 7, 7],
-#     [7, 7, 7, 7, 6, 7, 7, 7],
-#     [4, 5, 2, 7, 7, 7, 4, 2],
-#     [7, 7, 7, 7, 7, 7, 7, 7],
-#     [7, 6, 7, 4, 5, 5, 2, 7],
-# ]
-# puzzle = solution
-
-'''parts_in_row = [3, 1, 5, 0, 1, 5, 0, 5]
-parts_in_col = [2, 2, 3, 1, 3, 2, 4, 3]
-
-target_boat_single = 4
-target_boat_double = 3
-target_boat_triple = 2
-target_boat_quadrouple = 1'''
+import numpy as np
 
 
-# "Hard" 8x8 puzzle
-# puzzle = [
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 6, 0, 0, 0, 0, 0],
-#     [3, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 3, 0, 0],
-# ]
+class State:
+    """
+    This class record a state of board in dictionary.
+    Attributes:
+    map: A dictionary stores the position of each space (treat it as coordinates) as key and
+    the corresponding value of each key is a list.
+    In the list, we store the type of piece as string ('0' represents empty space;
+    'S' represent submarine; 'W' represents water; 'L' represents left end of horizontal ship;
+    'R' represents right end of horizontal ship; 'T' represents the top end of vertical ship;
+    'B' represents the bottom end of vertical ship; 'M' represents a middle segment of a ship).
+    ship_domain: A dictionary stores a dictionary of domain of left end or top end of a ship with
+    type of ship as key; and in
+     - Example:
+       - ship_domain = {'submarines': {0: [(0, 0), (0, 1), ...]},
+                        'cruisers': {0: {(0, 0): ['h', 'v'], (0, 1): ['h', 'v'], ...}}}.
+    ship_remain: A dictionary stores the number of ships we need to place on the board for winning
+    the game.
+    ship_seg: A dictionary stores the position of each ship segments (not complete ship) as key
+    and the cooresponding value is what type of segment it is.
+    Method:
+    - place(position: tuple, ship: str):
+        Place a ship (variable 'ship' represents the type of ship) on the position
+        where is the left end or top end of a ship placed on (or a certain position for submarine).
+    - c_surrounding(ship: str, ship_ind1                                      : int, ship2, ship2_ind: int):
+        Return True if ship and ship2 are both in safe distance (Include checking the row
+        and column constrain).
+    """
+    map: dict[tuple, str]
+    ship_domain: dict[str, dict]
+    ship_remain: dict[str, int]
+    ship_seg: dict[tuple, str]
+    row_con: list[int]
+    col_con: list[int]
 
-# solution = [
-#     [1, 0, 0, 0, 4, 2, 0, 1],
-#     [5, 0, 6, 0, 0, 0, 0, 3],
-#     [3, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 4, 5, 5, 2, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [4, 5, 2, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 1, 0, 6],
-#     [6, 0, 6, 0, 0, 3, 0, 0],
-# ]
-# puzzle = solution
+    def __init__(self) -> None:
+        self.map = dict()
+        self.ship_domain = {'submarines': dict(), 'destroyers': dict(), 'cruisers': dict(),
+                            'battleships': dict()}
+        self.ship_remain = {'submarines': 0, 'destroyers': 0, 'cruisers': 0, 'battleships': 0}
+        self.ship_seg = dict()
+        self.row_con = []
+        self.col_con = []
 
-# parts_in_row = [4, 3, 1, 4, 0, 3, 2, 3]
-# parts_in_col = [5, 1, 3, 1, 2, 4, 1, 3]
+    def __str__(self):
+        """print the state information (where is each piece at) as
+        "matrix-like" form to console."""
+        shape = int(math.sqrt(len(self.map)))
+        lst = []
+        result = ''
+        for _ in range(shape):
+            lst.append(['0'] * shape)
 
-# target_boat_single = 4
-# target_boat_double = 3
-# target_boat_triple = 2
-# target_boat_quadrouple = 1
+        for key in self.map:
+            lst[key[1]][key[0]] = self.map[key]
 
-# "Hard" 10x10 puzzle
-# puzzle = [
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 6, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 5, 0, 0],
-#     [0, 0, 0, 0, 0, 2, 0, 0, 0, 0],
-# ]
+        for i in range(shape):
+            result += ''.join(lst[i])
+            result += '\n'
+        return result
 
-# solution = [
-#     [7, 7, 7, 7, 7, 7, 7, 7, 7, 1],
-#     [7, 7, 7, 7, 7, 7, 7, 6, 7, 3],
-#     [7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-#     [7, 7, 4, 5, 2, 7, 7, 7, 7, 7],
-#     [7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-#     [7, 7, 6, 7, 7, 7, 7, 7, 7, 1],
-#     [6, 7, 7, 7, 7, 7, 7, 1, 7, 5],
-#     [7, 7, 7, 7, 7, 6, 7, 5, 7, 3],
-#     [7, 4, 2, 7, 7, 7, 7, 5, 7, 7],
-#     [7, 7, 7, 7, 4, 2, 7, 3, 7, 7],
-# ]
-# puzzle = solution
+    def __eq__(self, other):
+        """
+        Return True if all items in other's red and black are same as self's
+        """
+        if self.map != other.map or \
+                self.ship_domain != other.ship_domain or \
+                self.ship_remain != other.ship_remain or \
+                self.ship_seg != other.ship_seg or \
+                self.row_con != other.row_con or \
+                self.col_con != other.row_con:
+            return False
 
-# parts_in_row = [1, 2, 0, 3, 0, 2, 3, 3, 3, 3]
-# parts_in_col = [1, 1, 3, 1, 2, 2, 0, 5, 0, 5]
+    def place(self, position: tuple, ship: str, ship_ind: int, direction: str = None) -> None:
+        """Place a ship (variable 'ship' represents the type of ship) on the position where is the
+        left end (direction = 'h') or top end (direction = 'v') of
+        a ship placed on (or a certain position for submarine)."""
+        assert position in self.ship_domain[ship][ship_ind]
+        if ship != 'submarines' and direction is None:
+            print('ERROR: argument \'direction\' is missing')
+            return
+        x = position[0]
+        y = position[1]
+        shape = int(math.sqrt(len(self.map)))
+        check_lst = []
+        check_lst2 = []
+        place_lst = []
+        if ship == 'submarines':
+            # Check the surrounding of position is empty or not
+            check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+                         (x - 1, y), (x + 1, y),
+                         (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)]
+            check_lst = [tup for tup in check_lst if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
 
-# target_boat_single = 4
-# target_boat_double = 3
-# target_boat_triple = 2
-# target_boat_quadrouple = 1
+            for pos in check_lst:
+                if self.map[pos] != '0' and self.map[pos] != 'W':
+                    return
 
-puzzle = [[0, 0, 0, 0, 6, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 7, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 6, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
-parts_in_row = [1, 3, 0, 4, 3, 3, 2, 0, 3, 1]
-parts_in_col = [4, 3, 2, 2, 1, 0, 0, 4, 0, 4]
+            # Check whether the spaces of placing a ship is occupied,
+            # and place it if there are all empty
+            if self.map[position] != '0':
+                return
+            else:
+                self.map[position] = 'S'
+                self.ship_remain['submarines'] -= 1
+                return
 
-target_boat_single = 4
-target_boat_double = 3
-target_boat_triple = 2
-target_boat_quadrouple = 1
+        elif ship == 'destroyers':
+            # # Check the surrounding of position is empty or not
+            # if direction == 'v':
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+            #                  (x - 1, y), (x + 1, y),
+            #                  (x - 1, y + 1), (x + 1, y + 1),
+            #                  (x - 1, y + 2), (x, y + 2), (x + 1, y + 2)]
+            #     check_lst2 = [(x, y), (x, y + 1)]
+            # else:
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1), (x + 2, y - 1),
+            #                  (x - 1, y), (x + 2, y),
+            #                  (x - 1, y + 1), (x, y + 1), (x + 1, y + 1), (x + 2, y + 1)]
+            #     check_lst2 = [(x, y), (x + 1, y)]
+            # check_lst = [tup for tup in check_lst if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            # check_lst2 = [tup for tup in check_lst2 if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            #
+            # for pos in check_lst:
+            #     if self.map[pos] != '0' and self.map[pos] != 'W':
+            #         return
+            # # Check whether the spaces of placing a ship is valid or unoccupied,
+            # # and place it if there are all empty
+            # if len(check_lst2) != 2:
+            #     return
 
-parts = [
-    bow_up,
-    bow_right,
-    bow_down,
-    bow_left,
-    center,
-    single,
-]
+            # list for placing ship
+            if direction == 'h':
+                check_lst2 = [(x, y), (x + 1, y)]
+                place_lst = ['L', 'R']
+            else:
+                check_lst2 = [(x, y), (x, y + 1)]
+                place_lst = ['T', 'B']
 
-targetBoatTypes = {
-    1: target_boat_single,
-    2: target_boat_double,
-    3: target_boat_triple,
-    4: target_boat_quadrouple,
-}
+        elif ship == 'cruisers':
+            # # Check the surrounding of position is empty or not
+            # if direction == 'h':
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1), (x + 2, y - 1),
+            #                  (x + 3, y - 1),
+            #                  (x - 1, y), (x + 3, y),
+            #                  (x - 1, y + 1), (x, y + 1), (x + 1, y + 1), (x + 2, y + 1),
+            #                  (x + 3, y + 1)]
+            #     check_lst2 = [(x, y), (x + 1, y), (x + 2, y)]
+            # else:
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+            #                  (x - 1, y), (x + 1, y),
+            #                  (x - 1, y + 1), (x + 1, y + 1),
+            #                  (x - 1, y + 2), (x + 1, y + 2),
+            #                  (x - 1, y + 3), (x, y + 3), (x + 1, y + 3)]
+            #     check_lst2 = [(x, y), (x, y + 1), (x, y + 2)]
+            # check_lst = [tup for tup in check_lst if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            # check_lst2 = [tup for tup in check_lst2 if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            #
+            # for pos in check_lst:
+            #     if self.map[pos] != '0' and self.map[pos] != 'W':
+            #         return
+            # # Check whether the spaces of placing a ship is valid or unoccupied,
+            # # and place it if there are all empty
+            # if len(check_lst2) != 3:
+            #     return
 
-numberOfRows = len(puzzle)
-numberOfColumns = len(puzzle[0])
+            # list for placing ship
+            if direction == 'h':
+                check_lst2 = [(x, y), (x + 1, y), (x + 2, y)]
+                place_lst = ['L', 'M', 'R']
+            else:
+                check_lst2 = [(x, y), (x, y + 1), (x, y + 2)]
+                place_lst = ['T', 'M', 'B']
 
-rownames = list(range(numberOfRows))
-colnames = [*string.ascii_letters[0:numberOfColumns]]
+        elif ship == 'battleships':
+            # # Check the surrounding of position is empty or not
+            # if direction == 'h':
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1), (x + 2, y - 1),
+            #                  (x + 3, y - 1), (x + 4, y + 1),
+            #                  (x - 1, y), (x + 4, y),
+            #                  (x - 1, y + 1), (x, y + 1), (x + 1, y + 1), (x + 2, y + 1),
+            #                  (x + 3, y + 1), (x + 4, y + 1)]
+            #     check_lst2 = [(x, y), (x + 1, y), (x + 2, y), (x + 3, y)]
+            # else:
+            #     check_lst = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+            #                  (x - 1, y), (x + 1, y),
+            #                  (x - 1, y + 1), (x + 1, y + 1),
+            #                  (x - 1, y + 2), (x + 1, y + 2),
+            #                  (x - 1, y + 3), (x + 1, y + 3),
+            #                  (x - 1, y + 4), (x, y + 4), (x + 1, y + 4)]
+            #     check_lst2 = [(x, y), (x, y + 1), (x, y + 2), (x, y + 3)]
+            # check_lst = [tup for tup in check_lst if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            # check_lst2 = [tup for tup in check_lst2 if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+            #
+            # for pos in check_lst:
+            #     if self.map[pos] != '0' and self.map[pos] != 'W':
+            #         return
+            # # Check whether the spaces of placing a ship is valid or unoccupied,
+            # # and place it if there are all empty
+            # if len(check_lst2) != 4:
+            #     return
 
-rows = []
-for i in rownames:
-    row = []
-    for j in colnames:
-        row.append(j+str(i))
-    rows.append(row)
-
-cols = []
-for j in colnames:
-    col = []
-    cols.append(col)
-    for i in rownames:
-        col.append(j+str(i))
-
-flatVariables = list(chain.from_iterable(rows))
-
-boxes = []
-
-for i in range(numberOfRows-2):
-    for j in range(numberOfColumns-2):
-        box = []
-        for rowi in range(3):
-            for coli in range(3):
-                box.append(rows[i+rowi][j+coli])
-        boxes.append(box)
-
-border_boxes_left = []
-for i in range(numberOfRows-2):
-    box = []
-    for j in range(3):
-        box.append(rows[i+j][0])
-        box.append(rows[i+j][1])
-    border_boxes_left.append(box)
-
-border_boxes_right = []
-for i in range(numberOfRows-2):
-    box = []
-    for j in range(3):
-        box.append(rows[i+j][numberOfColumns-2])
-        box.append(rows[i+j][numberOfColumns-1])
-    border_boxes_right.append(box)
-
-border_boxes_top = []
-for i in range(numberOfColumns-2):
-    box = []
-    for j in range(3):
-        box.append(rows[0][i+j])
-        box.append(rows[1][i+j])
-    border_boxes_top.append(box)
-
-border_boxes_bottom = []
-for i in range(numberOfColumns-2):
-    box = []
-    for j in range(3):
-        box.append(rows[numberOfRows-2][i+j])
-        box.append(rows[numberOfRows-1][i+j])
-    border_boxes_bottom.append(box)
-
-corner_top_left_box = [
-    rows[0][0],
-    rows[0][1],
-    rows[1][0],
-    rows[1][1],
-]
-
-corner_top_right_box = [
-    rows[0][len(cols)-2],
-    rows[0][len(cols)-1],
-    rows[1][len(cols)-2],
-    rows[1][len(cols)-1],
-]
-
-corner_bottom_left_box = [
-    rows[len(rows)-2][0],
-    rows[len(rows)-2][1],
-    rows[len(rows)-1][0],
-    rows[len(rows)-1][1],
-]
-
-corner_bottom_right_box = [
-    rows[len(rows)-2][len(cols)-2],
-    rows[len(rows)-2][len(cols)-1],
-    rows[len(rows)-1][len(cols)-2],
-    rows[len(rows)-1][len(cols)-1],
-]
-
-# ----- Lookup table for bimaru solver -----
-neighbourLookupTable = {}
-for box in boxes:
-    neighbourLookupTable[box[4]] = [*box[0:4], *box[5:]]
-
-# borders
-for box in border_boxes_top:
-    neighbourLookupTable[box[2]] = [*box[0:2], *box[3:]]
-
-for box in border_boxes_right:
-    neighbourLookupTable[box[3]] = [*box[0:3], *box[4:]]
-
-for box in border_boxes_bottom:
-    neighbourLookupTable[box[3]] = [*box[0:3], *box[4:]]
-
-for box in border_boxes_left:
-    neighbourLookupTable[box[2]] = [*box[0:2], *box[3:]]
-
-# corners
-neighbourLookupTable[corner_top_left_box[0]] = [*corner_top_left_box[1:]]
-neighbourLookupTable[corner_top_right_box[1]] = [*corner_top_right_box[0:1], *corner_top_right_box[2:]]
-neighbourLookupTable[corner_bottom_left_box[2]] = [*corner_bottom_left_box[0:2], *corner_bottom_left_box[3:]]
-neighbourLookupTable[corner_bottom_right_box[3]] = [*corner_bottom_right_box[0:3]]
-
-# ------------------------------------------------------------------------------
-# formulate bimaru as CSP
-# ------------------------------------------------------------------------------
-bimaru = csp.Problem(BacktrackingBimaruSolver(neighbourLookupTable))
-
-for i, row in enumerate(rows):
-    for j, col in enumerate(row):
-        bimaru.addVariable(col,
-                           list(range(1, 8)) if puzzle[i][j] == 0 else [puzzle[i][j]])
-
-
-def getNumberOfPartsConstraint(exactNumberOfParts, rowIndex=-1, colIndex=-1):
-    def constraint(*args, assignments=None, _unassigned=csp.Unassigned):
-        numberOfParts = 0
-        anyUnassigned = False
-
-        for value in args:
-            if (value == _unassigned):
-                anyUnassigned = True
-            numberOfParts += 1 if value in parts else 0
-
-        unassignedAndOk = anyUnassigned and numberOfParts <= exactNumberOfParts
-        exact = not anyUnassigned and numberOfParts == exactNumberOfParts
-        if unassignedAndOk or exact:
-            return True
+            # list for placing ship
+            if direction == 'h':
+                check_lst2 = [(x, y), (x + 1, y), (x + 2, y), (x + 3, y)]
+                place_lst = ['L', 'M', 'M', 'R']
+            else:
+                check_lst2 = [(x, y), (x, y + 1), (x, y + 2), (x, y + 3)]
+                place_lst = ['T', 'M', 'M', 'B']
         else:
-            return False
-
-    return constraint
-
-
-def noNeighbourConstraintFunction(a, b, c, d, e, f, g, h, i, assignments=None, _unassigned=csp.Unassigned):
-    if (e == single):
-        water_values = [a, b, c, d, f, g, h, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-
-    if (e == bow_up):
-        if (h not in (bow_down, center, _unassigned)):
-            return False
-        water_values = [a, b, c, d, f, g, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-
-    if (e == bow_down):
-        if (b not in (bow_up, center, _unassigned)):
-            return False
-        water_values = [a, c, d, f, g, h, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-
-    if (e == bow_left):
-        if (f not in (bow_right, center, _unassigned)):
-            return False
-        water_values = [a, b, c, d, g, h, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-
-    if (e == bow_right):
-        if (d not in (bow_left, center, _unassigned)):
-            return False
-        water_values = [a, b, c, f, g, h, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-    
-    if (e == center):
-
-        if b in (bow_up, center) and (
-            d not in (water, _unassigned) 
-            or f not in (water, _unassigned)
-            or h == water
-        ):
-            return False
-
-        if h in (bow_down, center) and (
-            d not in (water, _unassigned)
-            or f not in (water, _unassigned)
-            or b == water
-            ):
-            return False
-
-        if d in (bow_left, center) and (
-            b not in (water, _unassigned) 
-            or h not in (water, _unassigned)
-            or f == water
-        ):
-            return False
-
-        if f in (bow_right, center) and (
-            b not in (water, _unassigned) 
-            or h not in (water, _unassigned)
-            or d == water
-        ):
-            return False
-
-        water_values = [a, c, g, i]
-        for value in water_values:
-            if value != water and value != _unassigned:
-                return False
-
-    return True
-
-
-def borderTopConstraintFunction(a1, a2, b1, b2, c1, c2, assignments=None, _unassigned=csp.Unassigned):
-    if b1 == bow_down:
-        return False
-
-    if (not noNeighbourConstraintFunction(7, 7, 7, a1, b1, c1, a2, b2, c2, _unassigned)):
-        return False
-
-    return True
-
-
-def borderBottomConstraintFunction(a1, a2, b1, b2, c1, c2, assignments=None, _unassigned=csp.Unassigned):
-    if b2 == bow_up:
-        return False
-
-    if (not noNeighbourConstraintFunction(a1, b1, c1, a2, b2, c2, 7, 7, 7, _unassigned)):
-        return False
-
-    return True
-
-
-def borderLeftConstraintFunction(a1, b1, a2, b2, a3, b3, assignments=None, _unassigned=csp.Unassigned):
-    if a2 == bow_right:
-        return False
-
-    if (not noNeighbourConstraintFunction(7, a1, b1, 7, a2, b2, 7, a3, b3, _unassigned)):
-        return False
-
-    return True
-
-
-def borderRightConstraintFunction(a1, b1, a2, b2, a3, b3, assignments=None, _unassigned=csp.Unassigned):
-    if b2 == bow_left:
-        return False
-
-    if (not noNeighbourConstraintFunction(a1, b1, 7, a2, b2, 7, a3, b3, 7, _unassigned)):
-        return False
-
-    return True
-
-
-for rowIndex, numberOfParts in enumerate(parts_in_row):
-    row = rows[rowIndex]
-    constraint = csp.FunctionConstraint(getNumberOfPartsConstraint(
-        numberOfParts, rowIndex=rowIndex), assigned=debugAssigned)
-    bimaru.addConstraint(constraint, row)
-
-for colIndex, numberOfParts in enumerate(parts_in_col):
-    col = cols[colIndex]
-    constraint = csp.FunctionConstraint(getNumberOfPartsConstraint(
-        numberOfParts, colIndex=colIndex), assigned=debugAssigned)
-    bimaru.addConstraint(constraint, col)
-
-noNeighbourConstraint = csp.FunctionConstraint(
-    noNeighbourConstraintFunction, assigned=debugAssigned)
-for box in boxes:
-    bimaru.addConstraint(noNeighbourConstraint, box)
-
-
-borderTopConstraint = csp.FunctionConstraint(
-    borderTopConstraintFunction, assigned=debugAssigned)
-for box in border_boxes_top:
-    bimaru.addConstraint(borderTopConstraint, box)
-
-borderBottomConstraint = csp.FunctionConstraint(
-    borderBottomConstraintFunction, assigned=debugAssigned)
-for box in border_boxes_bottom:
-    bimaru.addConstraint(borderBottomConstraint, box)
-
-borderLeftConstraint = csp.FunctionConstraint(
-    borderLeftConstraintFunction, assigned=debugAssigned)
-for box in border_boxes_left:
-    bimaru.addConstraint(borderLeftConstraint, box)
-
-borderRightConstraint = csp.FunctionConstraint(
-    borderRightConstraintFunction, assigned=debugAssigned)
-for box in border_boxes_right:
-    bimaru.addConstraint(borderRightConstraint, box)
-
-
-def cornerTopLeftConstraintFunction(b2, c2, b3, c3, assignments=None, _unassigned=csp.Unassigned):
-    if b2 in (bow_right, bow_down, center):
-        return False
-
-    if (not noNeighbourConstraintFunction(7, 7, 7, 7, b2, c2, 7, b3, c3, _unassigned)):
-        return False
-
-    return True
-
-
-def cornerTopRightConstraintFunction(a2, b2, a3, b3, assignments=None, _unassigned=csp.Unassigned):
-    if b2 in (bow_left, bow_down, center):
-        return False
-
-    if (not noNeighbourConstraintFunction(7, 7, 7, a2, b2, 7, a3, b3, 7, _unassigned)):
-        return False
-
-    return True
-
-
-def cornerBottomRightConstraintFunction(a1, b1, a2, b2, assignments=None, _unassigned=csp.Unassigned):
-    if b2 in (bow_left, bow_up, center):
-        return False
-
-    if (not noNeighbourConstraintFunction(a1, b1, 7, a2, b2, 7, 7, 7, 7, _unassigned)):
-        return False
-
-    return True
-
-
-def cornerBottomLeftConstraintFunction(b1, c1, b2, c2, assignments=None, _unassigned=csp.Unassigned):
-    if b2 in (bow_right, bow_down, center):
-        return False
-
-    if (not noNeighbourConstraintFunction(7, b1, c1, 7, b2, c2, 7, 7, 7, _unassigned)):
-        return False
-
-    return True
-
-
-                     
-def cornerTopRightConstraintFunction(a2, b2, a3, b3, assignments=None, _unassigned=csp.Unassigned):
-    if b2 in (bow_left, bow_down, center):
-        return False
-
-    if (not noNeighbourConstraintFunction(7, 7, 7, a2, b2, 7, a3, b3, 7, _unassigned)):
-        return False
-
-    return True
-
-
-cornerTopLeftConstraint = csp.FunctionConstraint(
-    cornerTopLeftConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(cornerTopLeftConstraint, corner_top_left_box)
-
-cornerTopRightConstraint = csp.FunctionConstraint(
-    cornerTopRightConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(cornerTopRightConstraint, corner_top_right_box)
-
-cornerBottomRightConstraint = csp.FunctionConstraint(
-    cornerBottomRightConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(cornerBottomRightConstraint, corner_bottom_right_box)
-
-cornerBottomLeftConstraint = csp.FunctionConstraint(
-    cornerBottomLeftConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(cornerBottomLeftConstraint, corner_bottom_left_box)
-
-def partTypeCountConstraintFunction(*args, assignments=None, _unassigned=csp.Unassigned):
-    count_bow_up = args.count(bow_up)
-    count_bow_right = args.count(bow_right)
-    count_bow_down = args.count(bow_down)
-    count_bow_left = args.count(bow_left)
-    count_boat_single = args.count(single)
-    count_unassigned = args.count(_unassigned)
-    count_centers = args.count(center)
-
-    target_nr_big_boats = target_boat_double + \
-        target_boat_triple + target_boat_quadrouple
-    target_centers = target_boat_triple + 2*target_boat_quadrouple
-
-    if (count_bow_up + count_bow_left) > target_nr_big_boats:
-        return False
-    if (count_bow_down + count_bow_right) > target_nr_big_boats:
-        return False
-
-    if (count_boat_single > target_boat_single):
-        return False
-
-    if count_centers > target_centers:
-        return False
-
-    if count_unassigned == 0:
-        if (count_bow_up + count_bow_left) != target_nr_big_boats:
-            return False
-        if count_centers != target_centers:
-            return False
-
-        if count_bow_up != count_bow_down or count_bow_left != count_bow_right:
-            return False
-
-    return True
-
-
-partTypeCountConstraint = csp.FunctionConstraint(
-    partTypeCountConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(partTypeCountConstraint, flatVariables)
-
-
-def boatTypeCountConstraintFunction(*args, assignments=None, _unassigned=csp.Unassigned):
-    boatTypes = {}
-    anyBoatIncomplete = False
-
-    for i, value in enumerate(args):
-        colIndex = i % len(cols)
-        rowIndex = int(i / len(cols))
-        boatLength = 0
-
-        if value == bow_up:
-            for j in range(1, 4):
-                if i + j*len(cols) > len(args)-1:
-                    return False
-
-                field = args[i + j*len(cols)]
-                if field in [center, bow_down]:
-                    if field == bow_down:
-                        boatLength = j+1
-                        break
+            return
+
+        # Check whether the ship overlap any non-empty space
+        seg_count = 0
+        for i in range(len(check_lst2)):
+            pos = check_lst2[i]
+            if self.map[pos] != '0':
+                if self.map[pos] != place_lst[i]:
+                    return
                 else:
-                    anyBoatIncomplete = True
-                    break
+                    seg_count += 1
+        # Avoid the situation place the same ship at the same position again.
+        if seg_count == len(place_lst):
+            return
 
-        if value == bow_left:
-            for j in range(1, 4):
-                if colIndex + j > len(cols)-1:
+        # Place ship
+        for i in range(len(check_lst2)):
+            pos = check_lst2[i]
+            self.map[pos] = place_lst[i]
+        # Eliminate the domain of that ship and ship_seg
+        for pos in check_lst2:
+            if pos in self.ship_seg:
+                self.ship_seg.pop(pos)
+        self.ship_domain[ship].pop(ship_ind)
+        self.ship_remain[ship] -= 1
+
+    def c_row_col(self, ship: list) -> bool:
+        """Return True if a given ship not offend the constraint of row and column.
+        Otherwise, return False.
+         - param:
+            - ship: A list stores the information of ship:
+            - index 0 represents the type of ship (string);
+            - index 1 represents the position of top-end or left-end of the ship (tuple);
+            - index 2 represents the direction of the ship (no index 2 if ship is submarine)
+        """
+        shape = len(self.row_con)
+        ship_x = ship[1][0]
+        ship_y = ship[1][1]
+        row_lst = []
+        col_lst = []
+        row_lst.append([(x, ship_y) for x in range(shape)])
+        col_lst.append([(ship_x, y) for y in range(shape)])
+        if ship[0] == 'destroyers':
+            if ship[2] == 'h':
+                col_lst.append([(ship_x + 1, y) for y in range(shape)])
+            else:
+                row_lst.append([(x, ship_y + 1) for x in range(shape)])
+        elif ship[0] == 'cruisers':
+            if ship[2] == 'h':
+                col_lst.append([(ship_x + 1, y) for y in range(shape)])
+                col_lst.append([(ship_x + 2, y) for y in range(shape)])
+            else:
+                row_lst.append([(x, ship_y + 1) for x in range(shape)])
+                row_lst.append([(x, ship_y + 2) for x in range(shape)])
+        elif ship[0] == 'battleships':
+            if ship[2] == 'h':
+                col_lst.append([(ship_x + 1, y) for y in range(shape)])
+                col_lst.append([(ship_x + 2, y) for y in range(shape)])
+                col_lst.append([(ship_x + 3, y) for y in range(shape)])
+            else:
+                row_lst.append([(x, ship_y + 1) for x in range(shape)])
+                row_lst.append([(x, ship_y + 2) for x in range(shape)])
+                row_lst.append([(x, ship_y + 3) for x in range(shape)])
+
+        # Start checking whether all rows and columns followed the constraints.
+        ship_lst = self.ship_occupied(ship)
+        for i in range(len(row_lst)):
+            # Initiate and reset count
+            row_count = 0
+            for pos in row_lst[i]:
+                if (self.map[pos] != '0' and self.map[pos] != 'W') or pos in ship_lst:
+                    row_count += 1
+            if not (row_count <= self.row_con[ship_y + i]):
+                return False
+
+        for i in range(len(col_lst)):
+            # Initiate and reset count
+            col_count = 0
+            for pos in col_lst[i]:
+                # If the space on game board both have a part of ship and
+                # the given ship will occupied on it, we count it one time.
+                # The correctness of this situation will be tested in other constraint.
+                if (self.map[pos] != '0' and self.map[pos] != 'W') or pos in ship_lst:
+                    col_count += 1
+            if not (col_count <= self.col_con[ship_x + i]):
+                return False
+
+        return True
+
+    def c_surrounding(self, ship: list) -> bool:
+        """Return True if ship is not collide with the
+        existed ship or part of ship on game board. Otherwise, return False.
+         - param:
+            - ship: A list stores the information of ship:
+             - index 0 represents the type of ship (string);
+             - index 1 represents the position of top-end or left-end of the ship (tuple);
+             - index 2 represents the direction of the ship (no index 2 if ship is submarine)
+        """
+        shape = len(self.row_con)
+        # Turn the spaces around ship into
+        # np.array for checking whether it collides with map or not
+        # (space is occupied represents 1,
+        # and the one is not occupied represents 0).
+        ship_field = self.np_ship(ship)
+        # Turn the game board into np.array.
+        state_field = self.np_state()
+
+        # Checking whether ship complete any partial ship on the map:
+        # if yes, then change that partial ship, on state_field, to 0.
+        check_lst = self.ship_occupied(ship)
+        seg_count = 0
+        for i in range(len(check_lst)):
+            key = check_lst[i]
+            # Ship cannot be occupied on the spaces that ensure it is water
+            if self.map[key] == 'W':
+                return False
+            if self.map[key] == 'T' or self.map[key] == 'L':
+                if i != 0:
                     return False
-
-                field = args[i + j]
-                if field in [center, bow_right]:
-                    if field == bow_right:
-                        boatLength = j+1
-                        break
                 else:
-                    anyBoatIncomplete = True
-                    break
-
-        if value == single:
-            boatLength = 1
-
-        if boatLength != 0:
-            boatTypes[boatLength] = boatTypes.get(boatLength, 0) + 1
-
-    if args.count(_unassigned) == 0:
-        if len(boatTypes) != len(targetBoatTypes) or anyBoatIncomplete:
+                    seg_count += 1
+                    state_field[key[1]][key[0]] = 0
+            elif self.map[key] == 'B' or self.map[key] == 'R':
+                if i != (len(check_lst) - 1):
+                    return False
+                else:
+                    seg_count += 1
+                    state_field[key[1]][key[0]] = 0
+            elif self.map[key] == 'M':
+                if not (0 < i < (len(check_lst) - 1)):
+                    return False
+                else:
+                    seg_count += 1
+                    state_field[key[1]][key[0]] = 0
+        # Avoid the situation that ship occupied on a same pre-existed ship with same position.
+        if seg_count == len(check_lst):
+            # Eliminate the position in ship_seg, since ship segments already built a ship.
+            for pos in check_lst:
+                if pos in self.ship_seg:
+                    self.ship_seg.pop(pos)
             return False
-        for boatType, count in boatTypes.items():
-            if targetBoatTypes[boatType] != count:
-                return False
-    else:
-        for boatType, count in boatTypes.items():
-            if boatType not in targetBoatTypes:
-                return False
 
-            if targetBoatTypes[boatType] < count:
-                return False
+        return np.vdot(state_field, ship_field) == 0
 
-    return True
+    def c_ships(self, ship1: list, ship2: list) -> bool:
+        """Return True if two ships has safe distance with each other.
+         - param:
+            - ship: A list stores the information of ship:
+             - index 0 represents the type of ship (string);
+             - index 1 represents the position of top-end or left-end of the ship (tuple);
+             - index 2 represents the direction of the ship (no index 2 if ship is submarine)
+        """
+        shape = len(self.row_con)
+        ship1_field = self.np_ship(ship1)
+        ship2_occ = self.ship_occupied(ship2)
+        ship2_field = np.zeros((shape, shape))
+        for pos in ship2_occ:
+            ship2_field[pos[1]][pos[0]] = 1
 
-boatTypeCountConstraint = csp.FunctionConstraint(
-    boatTypeCountConstraintFunction, assigned=debugAssigned)
-bimaru.addConstraint(boatTypeCountConstraint, flatVariables)
+        return np.vdot(ship1_field, ship2_field) == 0
 
-# ------------------------------------------------------------------------------
-# solve CSP
-# ------------------------------------------------------------------------------
-start_time = time.time()
-solutions = bimaru.getSolutions()
+    def np_state(self):
+        """Return an np.array for helping to compare a ship is valid for placing or not."""
+        shape = len(self.row_con)
+        result = np.zeros((shape, shape))
+        for key in self.map:
+            if self.map[key] != '0' and self.map[key] != 'W':
+                result[key[1]][key[0]] = 1
+        return result
 
-# solutions = [solutions[randrange(len(solutions)-1)]]
-# solutions = [bimaru.getSolution()]
+    def np_ship(self, ship: list):
+        """Return an np.array for helping to compare a ship is valid for placing or not.
+        - param:
+            - ship: A list stores the information of ship:
+             - index 0 represents the type of ship (string);
+             - index 1 represents the position of top-end or left-end of the ship (tuple);
+             - index 2 represents the direction of the ship (no index 2 if ship is submarine)
+        """
+        shape = len(self.row_con)
+        s_field = np.zeros((shape, shape))
+        # Getting the position of spaces around the ship (included the space occupied by ship)
+        if ship[0] == 'submarines':
+            x_range = ship[1][0] + 2  # start from ship[1][1] - 1
+            y_range = ship[1][1] + 2  # start from ship[1][1] - 1
+            # ship1_field = [(x, y) for y in range(ship[1][1] - 1, ship[1][1] + 2)
+            #                for x in range(ship[1][0] - 1, ship[1][0] + 2)
+            #                if 0 <= x < shape and 0 <= y < shape]
 
-print('')
-print('Time taken:')
-print(f"--- {time.time() - start_time} seconds ---")
+        elif ship[0] == 'destroyers':
+            if ship[2] == 'h':
+                x_range = ship[1][0] + 3
+                y_range = ship[1][1] + 2
+            else:
+                x_range = ship[1][0] + 2
+                y_range = ship[1][1] + 3
+        elif ship[0] == 'cruisers':
+            if ship[2] == 'h':
+                x_range = ship[1][0] + 4
+                y_range = ship[1][1] + 2
+            else:
+                x_range = ship[1][0] + 2
+                y_range = ship[1][1] + 4
+        else:
+            if ship[2] == 'h':
+                x_range = ship[1][0] + 5
+                y_range = ship[1][1] + 2
+            else:
+                x_range = ship[1][0] + 2
+                y_range = ship[1][1] + 5
 
-print('')
-print(f'Number of solutions found: {len(solutions)}')
+        for y in range(ship[1][1] - 1, y_range):
+            for x in range(ship[1][0] - 1, x_range):
+                if 0 <= x < shape and 0 <= y < shape:
+                    s_field[y][x] = 1
+        return s_field
 
-part_map = {
-    1: '∩',
-    2: '⊃',
-    3: '∪',
-    4: '⊂',
-    5: '□',
-    6: '○',
-    7: '░',
-}
+    def ship_occupied(self, ship: list) -> list:
+        """Return a list of coordinates that a given ship will occupied.
+        """
+        check_lst = []
+        ship_x = ship[1][0]
+        ship_y = ship[1][1]
+        shape = len(self.row_con)
+        if ship[0] == 'submarines':
+            check_lst = [(x, y) for y in range(ship_y, ship_y + 1)
+                         for x in range(ship_x, ship_x + 1)]
+        elif ship[0] == 'destroyers':
+            if ship[2] == 'h':
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 1)
+                             for x in range(ship_x, ship_x + 2)]
+            else:
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 2)
+                             for x in range(ship_x, ship_x + 1)]
+        elif ship[0] == 'cruisers':
+            if ship[2] == 'h':
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 1)
+                             for x in range(ship_x, ship_x + 3)]
+            else:
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 3)
+                             for x in range(ship_x, ship_x + 1)]
+        elif ship[0] == 'battleships':
+            if ship[2] == 'h':
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 1)
+                             for x in range(ship_x, ship_x + 4)]
+            else:
+                check_lst = [(x, y) for y in range(ship_y, ship_y + 4)
+                             for x in range(ship_x, ship_x + 1)]
+        test_lst = [tup for tup in check_lst if 0 <= tup[0] < shape and 0 <= tup[1] < shape]
+        assert check_lst == test_lst
+        return check_lst
 
-for solution in solutions:
-    col_count = len(cols)
-    row_count = len(cols)
-    h_length = (4*col_count)-1
-    space_between_cols = math.floor((h_length)/2)
 
-    print('')
-    print('┌' + space_between_cols*'─' + '┬' + space_between_cols*'─' + '┐')
-    for i, row in enumerate(rows):
-        for j, col in enumerate(row):
-            print(
-                (" " if j > 0 else "") + \
-                ("| " if j % (col_count/2) == 0 else "  ") + \
-                str(part_map[solution[col]]) \
-            , end="")
-        print(' |')
-        if i == math.floor(row_count/2) - 1:
-            print('├' + space_between_cols*'─' + '┼' + space_between_cols*'─' + '┤')
-        elif i < row_count-1:
-            print('│' + space_between_cols*' ' + '│' + space_between_cols*' ' + '│')
-    print('└' + space_between_cols*'─' + '┴' + space_between_cols*'─' + '┘')
+def s_clone(s: State) -> State:
+    """
+    Return a same State without aliasing.
+    """
+    clone = State()
+    # Copy State
+    clone.map = s.map.copy()
+    clone.ship_remain = s.ship_remain.copy()
+    clone.ship_domain = s.ship_domain.copy()
+    clone.row_con = s.row_con.copy()
+    clone.col_con = s.col_con.copy()
+    return clone
 
-    # break
+
+def txt_to_state(file: str) -> State:
+    """Return a State that convert input form to a game board state."""
+    f = open('input1.txt', 'r')
+    str_lst = f.readlines()
+    s = State()
+    shape = len(str_lst[0]) - 1  # Not include '\n'
+    # Initiate the row and column constraints
+    for i in range(shape):
+        s.row_con.append(int(str_lst[0][i]))
+    for i in range(shape):
+        s.col_con.append(int(str_lst[1][i]))
+
+    # Initiate the number of ships we need to place on the board
+    for i in range(len(str_lst[2]) - 1):
+        if i == 0:
+            s.ship_remain['submarines'] = int(str_lst[2][i])
+        elif i == 1:
+            s.ship_remain['destroyers'] = int(str_lst[2][i])
+        elif i == 2:
+            s.ship_remain['cruisers'] = int(str_lst[2][i])
+        else:
+            s.ship_remain['battleships'] = int(str_lst[2][i])
+
+    # Initiate the domain of each ship
+    coor_lst = [(x, y) for y in range(shape) for x in range(shape)]
+    for key in s.ship_remain:
+        for i in range(s.ship_remain[key]):
+            if key == 'submarines':
+                # create a list with all coordinates can be placed on the map
+                s.ship_domain[key][i] = []
+                for coor in coor_lst:
+                    s.ship_domain[key][i].append(coor)
+
+            elif key == 'destroyers':
+                # create a list with all coordinates can be placed on the map
+                s.ship_domain[key][i] = dict()
+                for coor in coor_lst:
+                    x, y = coor
+                    if 0 <= x < (shape - 1) and 0 <= y < (shape - 1):
+                        # Both vertical and horizontal direction
+                        s.ship_domain[key][i][coor] = ['h', 'v']
+                    elif 0 <= y < (shape - 1):
+                        # Only vertical direction
+                        s.ship_domain[key][i][coor] = ['v']
+                    elif 0 <= x < (shape - 1):
+                        # Only horizontal direction
+                        s.ship_domain[key][i][coor] = ['h']
+            elif key == 'cruisers':
+                s.ship_domain[key][i] = dict()
+                for coor in coor_lst:
+                    x, y = coor
+                    if 0 <= x < (shape - 2) and 0 <= y < (shape - 2):
+                        # Both vertical and horizontal direction
+                        s.ship_domain[key][i][coor] = ['h', 'v']
+                    elif 0 <= y < (shape - 2):
+                        # Only vertical direction
+                        s.ship_domain[key][i][coor] = ['v']
+                    elif 0 <= x < (shape - 2):
+                        # Only horizontal direction
+                        s.ship_domain[key][i][coor] = ['h']
+            else:
+                s.ship_domain[key][i] = dict()
+                for coor in coor_lst:
+                    x, y = coor
+                    if 0 <= x < (shape - 3) and 0 <= y < (shape - 3):
+                        # Both vertical and horizontal direction
+                        s.ship_domain[key][i][coor] = ['h', 'v']
+                    elif 0 <= y < (shape - 3):
+                        # Only vertical direction
+                        s.ship_domain[key][i][coor] = ['v']
+                    elif 0 <= x < (shape - 3):
+                        # Only horizontal direction
+                        s.ship_domain[key][i][coor] = ['h']
+
+    # Initiate the game board
+    for y_lst in range(shape):
+        for x_lst in range(shape):
+            s.map[(x_lst, y_lst)] = str_lst[y_lst + 3][x_lst]
+            # Record the position of ship segments (not empty spot and not water)
+            if s.map[(x_lst, y_lst)] != '0' and \
+                    s.map[(x_lst, y_lst)] != 'W' and \
+                    s.map[(x_lst, y_lst)] != 'S':
+                s.ship_seg[(x_lst, y_lst)] = s.map[(x_lst, y_lst)]
+
+    # Set the col/row to be all 'W' if its row/column constraint is 0.
+    for i in s.row_con:
+        if s.row_con[i] == 0:
+            # Set that row to 'W'
+            for x in range(shape):
+                s.map[(x, i)] = 'W'
+
+    for i in s.col_con:
+        if s.col_con[i] == 0:
+            # Set that column to 'W'
+            for y in range(shape):
+                s.map[(i, y)] = 'W'
+
+    f.close()
+    return s
+
+
+def forward_check(s: State) -> State:
+    """Return a solution state by using forward checking algorithm"""
+    # Checking if the current state is a goal state
+    zero_remain = 0
+    for key in s.ship_remain:
+        if s.ship_remain[key] == 0:
+            zero_remain += 1
+    if zero_remain == 4:
+        return s
+
+    # Pick an unassigned variable and doing recursion
+    ...
+
+
+def pick_var(s: State):
+    """ Pick an unassigned variable for forward checking or GAC.
+     - priority 1: Pick a ship that can complete the ship_segment with
+     the lowest constraint mark (the number of row and column constraint at that position).
+     - priority 2: Pick the largest ship with the lowest number of domain
+    """
+    if len(s.ship_seg) > 0:
+        # Find the one with lowest constraint mark
+        lowest_seg = None
+        lowest_mark = None
+        for pos in s.ship_seg:
+            mark = s.row_con[pos[1]] + s.col_con[pos[0]]
+            if lowest_mark is None or lowest_mark > mark:
+                lowest_seg = pos
+                lowest_mark = mark
+        # Find what the biggest possible ship
+        lowest_con = None
+        if s.row_con[lowest_seg[1]] <= s.col_con[lowest_seg[0]]:
+            lowest_con = s.row_con[lowest_seg[1]]
+
+        else:
+            lowest_con = s.col_con[lowest_seg[0]]
+
+print(forward_check(txt_to_state('input1.txt')))
