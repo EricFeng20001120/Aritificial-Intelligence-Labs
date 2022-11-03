@@ -2,6 +2,8 @@
 import sys
 import copy
 import numpy as np
+import string
+from constraint import *
 
 # Set the two parameters to pass in
 input_file = sys.argv[1]
@@ -51,6 +53,8 @@ def existing_submarines(config, num_submarines):
     return num_submarines
 
 num_submarines = existing_submarines(board, num_submarines)
+
+print(board)
 
 # Variable declaration
 ship_pieces = ['S', 'L', 'R', 'T', 'B', 'M']
@@ -334,12 +338,6 @@ def is_solved(config):
 def MRV(domains):
     return dict(sorted(domains.items(), key=lambda i: -len(i[1]), reverse=True))
 
-# FC 
-def fc(config):
-    updated_config = copy.deepcopy(config)
-
-    return updated_config
-
 board = autofill(board)
 assignments, domains = assign_variable(board)
 
@@ -351,24 +349,15 @@ domains = MRV(domains)
 
 print(num_submarines, num_destroyers, num_cruisers, num_battleships)
 
-def ship_check(config, row_idx, col_idx, domain_value, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
-
-    return True
-
-def row_col_constraint(config, row_idx, col_idx, domain_value, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
-    #config[row_idx][col_idx] 
-
-    return True
-
 def find_row_cells(domains, row_idx):
     keys_list = []
     keys_list = list(domains.keys())
 
-    row_cells = []
+    row_cells = {}
 
     for i in keys_list:
         if i[0] == row_idx:
-            row_cells.append(i)
+            row_cells[i] = domains.get(i)
 
     return row_cells
 
@@ -376,13 +365,26 @@ def find_col_cells(domains, col_idx):
     keys_list = []
     keys_list = list(domains.keys())
 
-    col_cells = []
+    col_cells = {}
 
     for i in keys_list:
         if i[1] == col_idx:
-            col_cells.append(i)
+            col_cells[i] = domains.get(i)
 
     return col_cells
+
+def ship_check(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+
+    return True
+
+def row_col_constraint(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+
+    if row_line[row_idx] > 0 and col_line[col_idx] > 0:
+        if ship_check(config, row_idx, col_idx, domain_value, row_cells, col_cells, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
+            row_line[row_idx] -= 1
+            col_line[col_idx] -= 1
+
+    return True
 
 def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships):
     updated_config = copy.deepcopy(config)
@@ -397,13 +399,45 @@ def BT(config, domains, row_line, col_line, num_submarines, num_destroyers, num_
         row_cells = find_row_cells(domains, y)
         col_cells = find_col_cells(domains, x)
         for j in domains[i]:
-            pass
+            row_col_constraint(updated_config, y, x, j, row_cells, col_cells, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
             #print(ship_check(updated_config, i[0], i[1], j, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships))
-            #row_col_constraint(updated_config, y, x, j, new_row_line, new_col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
 
     print("Domains:")
     print(domains)
     return updated_config
 
 board = BT(board, domains, row_line, col_line, num_submarines, num_destroyers, num_cruisers, num_battleships)
-print(np.array(board))
+#print(np.array(board))
+
+def row_col(config, domains, row_line, col_line):
+    updated_config = copy.deepcopy(config)
+    
+    for i in domains:
+        y, x = i[0], i[1]
+        row_cells = find_row_cells(domains, y)
+        col_cells = find_col_cells(domains, x)
+        for j in i:
+            pass
+
+    return updated_config
+
+print(np.array(row_col(board, domains, row_line, col_line)))
+
+rownames = list(range(n))
+colnames = [*string.ascii_letters[0:n]]
+
+rows = []
+for i in rownames:
+    row = []
+    for j in colnames:
+        row.append(j+str(i))
+    rows.append(row)
+
+problem = Problem()
+for i, row in enumerate(rows):
+    for j, col in enumerate(row):
+        print([i,j])
+        if (i, j) in list(domains.keys()):
+            problem.addVariable(col, list(range(1, n)) if board[i][j] == 0 else [board[i][j]])
+
+print(problem.getSolutions())
