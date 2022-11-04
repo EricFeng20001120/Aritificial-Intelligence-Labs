@@ -470,22 +470,6 @@ else:
     board = BT(board, cell_domains)
     print(np.array(board))
 
-    '''path = []
-    for i in cell_domains:
-        y = i[0]
-        x = i[1]
-        potential_values_for_cell = cell_domains.get(i)
-        for pot in potential_values_for_cell:
-            for j in cell_domains:
-                second_y = j[0]
-                second_x = j[1]
-                for pot2 in cell_domains.get(j):
-                    if i != j:
-                        board[y][x] = pot
-                        board[second_y][second_x] = pot2
-                        if check_row_constraint(board) == True:  
-                            path.append(board)'''
-
     # Output the file
     output = open(output_file, "w")
     for i in range(n):
