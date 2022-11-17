@@ -21,6 +21,26 @@ if __name__ == '__main__':
     training_list = parameters[parameters.index("-d")+1:parameters.index("-t")]
     test_file = parameters[parameters.index("-t")+1]
     output_file = parameters[parameters.index("-o")+1]
+
+    list_of_training_lines = []
+    tmp = []
+
+    # Process the input training files
+    for i in training_list:
+        tmp += list_of_training_lines
+        with open(i, 'r') as f:
+            list_of_training_lines = f.readlines()
+
+    list_of_training_lines += tmp
+    list_of_training_lines = [x.rstrip() for x in list_of_training_lines]
+
+    # Process the input test file
+    with open(test_file, 'r') as f:
+        list_of_test_lines = f.readlines()
+
+    list_of_test_lines = [x.rstrip() for x in list_of_test_lines]
+
+    print(list_of_training_lines)
     # print("Training files: " + str(training_list))
     # print("Test file: " + test_file)
     # print("Output file: " + output_file)
