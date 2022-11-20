@@ -4,6 +4,26 @@
 import os
 import sys
 
+def list_to_dict(train_list):
+    train_dict = dict()
+    for i in train_list:
+        if i[0] != ":":
+            my_list = i.split(':')
+            train_dict[my_list[0]] = my_list[1]
+        else:
+            train_dict[":"] = "PUN"
+    return train_dict
+
+def list_to_tuple(train_list):
+    train_dict = []
+    for i in train_list:
+        if i[0] != ":":
+            my_list = i.split(':')
+            train_dict.append([my_list[0], my_list[1]])
+        else:
+            train_dict.append([':', 'PUN'])
+    return train_dict
+
 def tag(training_list, test_file, output_file):
     # Tag the words from the untagged input file and write them into the output file.
     # Doesn't do much else beyond that yet.
@@ -39,8 +59,11 @@ if __name__ == '__main__':
         list_of_test_lines = f.readlines()
 
     list_of_test_lines = [x.rstrip() for x in list_of_test_lines]
-
-    #print(list_of_training_lines)
+    list_of_training_lines = [x.replace(' ', '') for x in list_of_training_lines]
+    print(len(list_of_training_lines))
+    list_of_training_lines = list_to_tuple(list_of_training_lines)
+    #list_of_training_lines = list_to_dict(list_of_training_lines)
+    
     # print("Training files: " + str(training_list))
     # print("Test file: " + test_file)
     # print("Output file: " + output_file)
@@ -53,3 +76,5 @@ if __name__ == '__main__':
     for i in list_of_test_lines:
         output.write(i)
         output.write('\n')
+
+    print(len(list_of_training_lines))
