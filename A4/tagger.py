@@ -40,10 +40,16 @@ if __name__ == '__main__':
 
     list_of_test_lines = [x.rstrip() for x in list_of_test_lines]
 
-    print(list_of_training_lines)
+    #print(list_of_training_lines)
     # print("Training files: " + str(training_list))
     # print("Test file: " + test_file)
     # print("Output file: " + output_file)
 
     # Start the training and tagging operation.
     tag (training_list, test_file, output_file)
+
+    # Output the file
+    output = open(output_file, "w")
+    for i in list_of_test_lines:
+        output.write(i)
+        output.write('\n')
