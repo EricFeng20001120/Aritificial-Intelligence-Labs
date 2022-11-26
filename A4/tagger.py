@@ -63,11 +63,9 @@ def tag(training_list, test_file, output_file):
     # Emission probabilities
     # Calculate probability of a word given tag
     w_given_t = np.zeros((num_unique_pos, num_unique_words))
-    print(w_given_t)
-
+    
     # Transition  probabilities
     tags_matrix = np.zeros((num_unique_pos, num_unique_pos))
-    print(tags_matrix)
 
 if __name__ == '__main__':
     # Run the tagger function.
@@ -100,9 +98,9 @@ if __name__ == '__main__':
     tuple_of_training_lines = list_to_tuple(list_of_training_lines)
     #list_of_training_lines = list_to_dict(list_of_training_lines)
 
-    # print("Training files: " + str(training_list))
-    # print("Test file: " + test_file)
-    # print("Output file: " + output_file)
+    print("Training files: " + str(training_list))
+    print("Test file: " + test_file)
+    print("Output file: " + output_file)
 
     # Start the training and tagging operation.
     tag (tuple_of_training_lines, test_file, output_file)
