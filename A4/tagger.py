@@ -25,25 +25,6 @@ def list_to_tuple(train_list):
             train_dict.append([':', 'PUN'])
     return train_dict
 
-# Emission Probability
-def word_given_tag(word, tag, train_list):
-    tag_list = [pair for pair in train_list if pair[1]==tag]
-    count_tag = len(tag_list)
-    w_given_tag_list = [pair[0] for pair in tag_list if pair[0]==word]
-    count_w_given_tag = len(w_given_tag_list)
-    
-    return (count_w_given_tag, count_tag)
-
-# Transition Probability
-def t2_given_t1(t2, t1, train_list):
-    tags = [pair[1] for pair in train_list]
-    count_t1 = len([t for t in tags if t==t1])
-    count_t2_t1 = 0
-    for index in range(len(tags)-1):
-        if tags[index]==t1 and tags[index+1] == t2:
-            count_t2_t1 += 1
-    return (count_t2_t1, count_t1)
-
 def tag(training_list, test_file, output_file):
     # Tag the words from the untagged input file and write them into the output file.
     # Doesn't do much else beyond that yet.
