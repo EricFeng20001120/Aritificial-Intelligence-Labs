@@ -85,7 +85,24 @@ def tag(training_list, test_file, output_file):
     # YOUR IMPLEMENTATION GOES HERE
     #
 
-    # Find the unique number of words and parts of speech from training files
+    words, pos, unique_words, unique_pos = train_preprocessing(training_list)
+    test_words = test_preprocessing(test_file)
+
+    initial_table = build_initial_probabilities(pos, unique_pos, words)
+    emission_table = build_emission_probabilities(pos, unique_pos, words, unique_words)
+    transition_table = build_transition_probabilities(pos, unique_pos)
+
+    most_frequent_word = np.argmax(initial_table)
+    prob_trellis = np.zeros((len(unique_pos), len(test_words)), dtype='float')
+    path = {}
+
+    print(most_frequent_word)
+
+    # Output the file
+    output = open(output_file, "w")
+    for i in test_words:
+        output.write(i)
+        output.write('\n')
 
 if __name__ == '__main__':
     # Run the tagger function.
@@ -97,22 +114,9 @@ if __name__ == '__main__':
     test_file = parameters[parameters.index("-t")+1]
     output_file = parameters[parameters.index("-o")+1]
 
-    words, pos, unique_words, unique_pos = train_preprocessing(training_list)
-    test_words = test_preprocessing(test_file)
-
-    print(build_initial_probabilities(pos, unique_pos, words))
-    print(build_emission_probabilities(pos, unique_pos, words, unique_words))
-    print(build_transition_probabilities(pos, unique_pos))
-
     print("Training files: " + str(training_list))
     print("Test file: " + test_file)
     print("Output file: " + output_file)
 
     # Start the training and tagging operation.
-    #tag(training_list, test_file, output_file)
-
-    # Output the file
-    output = open(output_file, "w")
-    for i in test_words:
-        output.write(i)
-        output.write('\n')
+    tag(training_list, test_file, output_file)
