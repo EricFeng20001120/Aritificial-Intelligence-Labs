@@ -111,25 +111,34 @@ def tag(training_list, test_file, output_file):
     commonly_appearing_word = np.argmax(initial_table)
     viterbi = np.zeros((num_distinctive_pos, num_total_test_words))
 
+    # Determine value for time step 0
     if test_file_words[0] not in distinctive_words:
         viterbi[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
     else:
         viterbi[:,0] = initial_table*emission_table[:, distinctive_words[test_file_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
 
-    #for x2 to xt find each state's most likely prior state x
-    for o in range(1, num_total_test_words):
+    # Recursive step from time step 1 to the number of test words
+    for t in range(1, num_total_test_words):
         updated_configuration = {}
-        for s in range(num_distinctive_pos):
-            if test_file_words[o] in distinctive_words:
-                prior_tag = np.argmax(viterbi[:,o-1]*transition_table[:,s]*emission_table[s, distinctive_words[test_file_words[o]]])
-                viterbi[s, o] = viterbi[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, distinctive_words[test_file_words[o]]]
+
+        for i in range(num_distinctive_pos):
+
+            transition_table_up_to_i = transition_table[:,i]
+            test_word_in_train = distinctive_words[test_file_words[t]]
+            emission_table_from_i_to_test_word = emission_table[i, test_word_in_train]
+            emission_table_from_i_to_most_common_word = emission_table[i, commonly_appearing_word]
+
+            if test_file_words[t] in distinctive_words:
+                old_pos = np.argmax(viterbi[:,t-1]*transition_table_up_to_i*emission_table_from_i_to_test_word)
+                viterbi[i, t] = emission_table_from_i_to_test_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
             else:
-                prior_tag = np.argmax(viterbi[:,o-1]*transition_table[:,s]*emission_table[s, commonly_appearing_word])
-                viterbi[s, o] = viterbi[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, commonly_appearing_word]
-            updated_configuration[s] = np.append(configuration[prior_tag], s)
+                old_pos = np.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * viterbi[:,t-1])
+                viterbi[i, t] = emission_table_from_i_to_most_common_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
+            updated_configuration[i] = np.append(configuration[old_pos], i)
+            
         configuration = updated_configuration
-        #normalize columns
-        viterbi[:, o] = viterbi[:, o]/sum(viterbi[:, o])
+        viterbi_sum = sum(viterbi[:, t])
+        viterbi[:, t] = viterbi[:, t]/viterbi_sum
 
     solution  = []
     reversed_distinctive_tags = {value : key for (key, value) in distinctive_pos.items()}
