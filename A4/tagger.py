@@ -93,49 +93,49 @@ def tag(training_list, test_file, output_file):
     #
 
     words, pos, distinctive_words, distinctive_pos = train_preprocessing(training_list)
-    test_words = test_preprocessing(test_file)
+    test_file_words = test_preprocessing(test_file)
 
     initial_table = build_initial_probabilities(pos, distinctive_pos, words)
     emission_table = build_emission_probabilities(pos, distinctive_pos, words, distinctive_words)
     transition_table = build_transition_probabilities(pos, distinctive_pos)
 
     commonly_appearing_word = np.argmax(initial_table)
-    prob_trellis = np.zeros((len(distinctive_pos), len(test_words)))
-    path = {}
+    prob_trellis = np.zeros((len(distinctive_pos), len(test_file_words)))
+    configuration = {}
 
     for i in range(len(distinctive_pos)):
-        path[i] = np.array(i)
+        configuration[i] = np.array(i)
 
-    if test_words[0] not in distinctive_words:
+    if test_file_words[0] not in distinctive_words:
         prob_trellis[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
     else:
-        prob_trellis[:,0] = initial_table*emission_table[:, distinctive_words[test_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_words[0]]])
+        prob_trellis[:,0] = initial_table*emission_table[:, distinctive_words[test_file_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
 
     #for x2 to xt find each state's most likely prior state x
-    for o in range(1, len(test_words)):
-        new_path = {}
+    for o in range(1, len(test_file_words)):
+        updated_configuration = {}
         for s in range(len(distinctive_pos)):
-            if test_words[o] in distinctive_words:
-                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, distinctive_words[test_words[o]]])
-                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, distinctive_words[test_words[o]]]
+            if test_file_words[o] in distinctive_words:
+                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, distinctive_words[test_file_words[o]]])
+                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, distinctive_words[test_file_words[o]]]
             else:
                 prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, commonly_appearing_word])
                 prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, commonly_appearing_word]
-            new_path[s] = np.append(path[prior_tag], s)
-        path = new_path
+            updated_configuration[s] = np.append(configuration[prior_tag], s)
+        configuration = updated_configuration
         #normalize columns
         prob_trellis[:, o] = prob_trellis[:, o]/sum(prob_trellis[:, o])
 
     solution  = []
     reversed_distinctive_tags = {value : key for (key, value) in distinctive_pos.items()}
 
-    for stage in path[np.argmax(prob_trellis[:,-1])]:
+    for stage in configuration[np.argmax(prob_trellis[:,-1])]:
         solution.append(reversed_distinctive_tags[stage])
 
     # Output the file
     output = open(output_file, "w")
     for i in range(len(solution)):
-        output.write(test_words[i] + " : " + solution[i])
+        output.write(test_file_words[i] + " : " + solution[i])
         output.write('\n')
 
 if __name__ == '__main__':
