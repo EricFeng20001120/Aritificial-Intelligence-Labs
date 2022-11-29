@@ -16,30 +16,30 @@ def list_to_tuple(train_list):
     return train_dict
 
 def build_initial_probabilities(pos, unique_pos, words):
-    initial_table = np.full(len(unique_pos), 0.0001, dtype='float')
+    initial_table = np.full(len(unique_pos), 0.0001)
     for i in range(len(words)-1):
-        if pos[i] == 'PUN': #end of sentence
+        if pos[i] == 'PUN': 
             initial_table[unique_pos[pos[i+1]]] += 1
     return initial_table/sum(initial_table)
 
 def build_transition_probabilities(pos, unique_pos):
-    #creating t x t transition matrix of tags
-    transition_matrix = np.full((len(unique_pos), len(unique_pos)), 0.001, dtype='float')
+    transition_table = np.full((len(unique_pos), len(unique_pos)), 0.001)
     for i in range(len(pos)-1):
-        transition_matrix[unique_pos[pos[i]], unique_pos[pos[i+1]]] += 1
-    row_sum = transition_matrix.sum(axis=1)
-    norm_transition_matrix = transition_matrix/row_sum[:,np.newaxis]
+        transition_table[unique_pos[pos[i]], unique_pos[pos[i+1]]] += 1
+    row_sum = transition_table.sum(axis=1)
+    norm_transition_table = transition_table/row_sum[:,np.newaxis]
 
-    return norm_transition_matrix
+    return norm_transition_table
 
 def build_emission_probabilities(pos, unique_pos, words, unique_words):
-    emission_matrix = np.full((len(unique_pos), len(unique_words)), 0.0001, dtype='float')
-    for word in range(len(words)):
-        emission_matrix[unique_pos[pos[word]], unique_words[words[word]]] += 1
+    emission_table = np.full((len(unique_pos), len(unique_words)), 0.0001)
 
-    row_sum = emission_matrix.sum(axis=1)
-    norm_emission_matrix = emission_matrix/row_sum[:,np.newaxis]
-    return norm_emission_matrix
+    for word in range(len(words)):
+        emission_table[unique_pos[pos[word]], unique_words[words[word]]] += 1
+
+    row_sum = emission_table.sum(axis=1)
+    norm_emission_table = emission_table/row_sum[:,np.newaxis]
+    return norm_emission_table
 
 def train_preprocessing(training_list):
     list_of_training_lines = []
@@ -63,8 +63,8 @@ def train_preprocessing(training_list):
     for i, word in enumerate(set(words)):
         unique_words[word] = i
     unique_pos = {}
-    for i, tag in enumerate(set(pos)):
-        unique_pos[tag] = i
+    for i, pos_tag in enumerate(set(pos)):
+        unique_pos[pos_tag] = i
 
     return words, pos, unique_words, unique_pos
 
@@ -92,16 +92,43 @@ def tag(training_list, test_file, output_file):
     emission_table = build_emission_probabilities(pos, unique_pos, words, unique_words)
     transition_table = build_transition_probabilities(pos, unique_pos)
 
-    most_frequent_word = np.argmax(initial_table)
-    prob_trellis = np.zeros((len(unique_pos), len(test_words)), dtype='float')
+    commonly_appearing_word = np.argmax(initial_table)
+    prob_trellis = np.zeros((len(unique_pos), len(test_words)))
     path = {}
 
-    print(most_frequent_word)
+    for i in range(len(unique_pos)):
+        path[i] = np.array(i)
+
+    if test_words[0] not in unique_words:
+        prob_trellis[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
+    else:
+        prob_trellis[:,0] = initial_table*emission_table[:, unique_words[test_words[0]]]/sum(initial_table*emission_table[:, unique_words[test_words[0]]])
+
+    #for x2 to xt find each state's most likely prior state x
+    for o in range(1, len(test_words)):
+        new_path = {}
+        for s in range(len(unique_pos)):
+            if test_words[o] in unique_words:
+                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, unique_words[test_words[o]]])
+                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, unique_words[test_words[o]]]
+            else:
+                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, commonly_appearing_word])
+                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, commonly_appearing_word]
+            new_path[s] = np.append(path[prior_tag], s)
+        path = new_path
+        #normalize columns
+        prob_trellis[:, o] = prob_trellis[:, o]/sum(prob_trellis[:, o])
+
+    solution  = []
+    reversed_unique_tags = {value : key for (key, value) in unique_pos.items()}
+
+    for stage in path[np.argmax(prob_trellis[:,-1])]:
+        solution.append(reversed_unique_tags[stage])
 
     # Output the file
     output = open(output_file, "w")
-    for i in test_words:
-        output.write(i)
+    for i in range(len(solution)):
+        output.write(test_words[i] + " : " + solution[i])
         output.write('\n')
 
 if __name__ == '__main__':
