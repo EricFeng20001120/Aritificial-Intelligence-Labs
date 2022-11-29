@@ -95,41 +95,46 @@ def tag(training_list, test_file, output_file):
     words, pos, distinctive_words, distinctive_pos = train_preprocessing(training_list)
     test_file_words = test_preprocessing(test_file)
 
+    # Find the number of distinctive parts of speech and total number of test file words
+    num_distinctive_pos = len(distinctive_pos)
+    num_total_test_words = len(test_file_words)
+
+    configuration = {}
+    for i in range(num_distinctive_pos):
+        configuration[i] = np.array(i)
+
+    # Find the initial table, emission matrix and transition matrix probabilities
     initial_table = build_initial_probabilities(pos, distinctive_pos, words)
     emission_table = build_emission_probabilities(pos, distinctive_pos, words, distinctive_words)
     transition_table = build_transition_probabilities(pos, distinctive_pos)
 
     commonly_appearing_word = np.argmax(initial_table)
-    prob_trellis = np.zeros((len(distinctive_pos), len(test_file_words)))
-    configuration = {}
-
-    for i in range(len(distinctive_pos)):
-        configuration[i] = np.array(i)
+    viterbi = np.zeros((num_distinctive_pos, num_total_test_words))
 
     if test_file_words[0] not in distinctive_words:
-        prob_trellis[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
+        viterbi[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
     else:
-        prob_trellis[:,0] = initial_table*emission_table[:, distinctive_words[test_file_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
+        viterbi[:,0] = initial_table*emission_table[:, distinctive_words[test_file_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
 
     #for x2 to xt find each state's most likely prior state x
-    for o in range(1, len(test_file_words)):
+    for o in range(1, num_total_test_words):
         updated_configuration = {}
-        for s in range(len(distinctive_pos)):
+        for s in range(num_distinctive_pos):
             if test_file_words[o] in distinctive_words:
-                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, distinctive_words[test_file_words[o]]])
-                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, distinctive_words[test_file_words[o]]]
+                prior_tag = np.argmax(viterbi[:,o-1]*transition_table[:,s]*emission_table[s, distinctive_words[test_file_words[o]]])
+                viterbi[s, o] = viterbi[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, distinctive_words[test_file_words[o]]]
             else:
-                prior_tag = np.argmax(prob_trellis[:,o-1]*transition_table[:,s]*emission_table[s, commonly_appearing_word])
-                prob_trellis[s, o] = prob_trellis[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, commonly_appearing_word]
+                prior_tag = np.argmax(viterbi[:,o-1]*transition_table[:,s]*emission_table[s, commonly_appearing_word])
+                viterbi[s, o] = viterbi[prior_tag, o-1]*transition_table[prior_tag, s]*emission_table[s, commonly_appearing_word]
             updated_configuration[s] = np.append(configuration[prior_tag], s)
         configuration = updated_configuration
         #normalize columns
-        prob_trellis[:, o] = prob_trellis[:, o]/sum(prob_trellis[:, o])
+        viterbi[:, o] = viterbi[:, o]/sum(viterbi[:, o])
 
     solution  = []
     reversed_distinctive_tags = {value : key for (key, value) in distinctive_pos.items()}
 
-    for stage in configuration[np.argmax(prob_trellis[:,-1])]:
+    for stage in configuration[np.argmax(viterbi[:,-1])]:
         solution.append(reversed_distinctive_tags[stage])
 
     # Output the file
