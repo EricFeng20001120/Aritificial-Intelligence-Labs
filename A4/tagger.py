@@ -5,15 +5,12 @@ import os
 import sys
 import numpy as np
 
-def list_to_dict(train_list):
-    train_dict = dict()
-    for i in train_list:
-        if i[0] != ":":
-            my_list = i.split(':')
-            train_dict[my_list[0]] = my_list[1]
-        else:
-            train_dict[":"] = "PUN"
-    return train_dict
+def get_initial_probability_table(words, tags, unique_tags):
+    initial_table = np.full(len(unique_tags), 0.0001, dtype='float')
+    for i in range(len(words)-1):
+        if tags[i] == 'PUN': #end of sentence
+            initial_table[unique_tags[tags[i+1]]] += 1
+    return initial_table/sum(initial_table)
 
 def list_to_tuple(train_list):
     train_dict = []
@@ -25,39 +22,7 @@ def list_to_tuple(train_list):
             train_dict.append([':', 'PUN'])
     return train_dict
 
-def tag(training_list, test_file, output_file):
-    # Tag the words from the untagged input file and write them into the output file.
-    # Doesn't do much else beyond that yet.
-    print("Tagging the file.")
-    #
-    # YOUR IMPLEMENTATION GOES HERE
-    #
-
-    # Find the unique number of words and parts of speech from training files
-    words = [x[0] for x in training_list]
-    unique_words = set(words)
-    pos = [x[1] for x in training_list]
-    unique_pos = set(pos)
-    num_unique_pos = len(unique_pos)
-    num_unique_words = len(unique_words)
-
-    # Emission probabilities
-    # Calculate probability of a word given tag
-    w_given_t = np.zeros((num_unique_pos, num_unique_words))
-    
-    # Transition  probabilities
-    tags_matrix = np.zeros((num_unique_pos, num_unique_pos))
-
-if __name__ == '__main__':
-    # Run the tagger function.
-    print("Starting the tagging process.")
-
-    # Tagger expects the input call: "python3 tagger.py -d <training files> -t <test file> -o <output file>"
-    parameters = sys.argv
-    training_list = parameters[parameters.index("-d")+1:parameters.index("-t")]
-    test_file = parameters[parameters.index("-t")+1]
-    output_file = parameters[parameters.index("-o")+1]
-
+def train_preprocessing(training_list):
     list_of_training_lines = []
     tmp = []
 
@@ -69,25 +34,64 @@ if __name__ == '__main__':
 
     list_of_training_lines += tmp
     list_of_training_lines = [x.rstrip() for x in list_of_training_lines]
+    list_of_training_lines = [x.replace(' ', '') for x in list_of_training_lines]
+    tuple_of_training_lines = list_to_tuple(list_of_training_lines)
 
+    words = [x[0] for x in tuple_of_training_lines]
+    pos = [x[1] for x in tuple_of_training_lines]
+    
+    unique_words = {}
+    for i, word in enumerate(set(words)):
+        unique_words[word] = i
+    unique_pos = {}
+    for i, tag in enumerate(set(pos)):
+        unique_pos[tag] = i
+
+    return words, pos, unique_words, unique_pos
+
+def test_preprocessing(test_lines):
     # Process the input test file
     with open(test_file, 'r') as f:
         list_of_test_lines = f.readlines()
 
     list_of_test_lines = [x.rstrip() for x in list_of_test_lines]
-    list_of_training_lines = [x.replace(' ', '') for x in list_of_training_lines]
-    tuple_of_training_lines = list_to_tuple(list_of_training_lines)
-    #list_of_training_lines = list_to_dict(list_of_training_lines)
+
+    return list_of_test_lines
+
+def tag(training_list, test_file, output_file):
+    # Tag the words from the untagged input file and write them into the output file.
+    # Doesn't do much else beyond that yet.
+    print("Tagging the file.")
+    #
+    # YOUR IMPLEMENTATION GOES HERE
+    #
+
+    # Find the unique number of words and parts of speech from training files
+
+if __name__ == '__main__':
+    # Run the tagger function.
+    print("Starting the tagging process.")
+
+    # Tagger expects the input call: "python3 tagger.py -d <training files> -t <test file> -o <output file>"
+    parameters = sys.argv
+    training_list = parameters[parameters.index("-d")+1:parameters.index("-t")]
+    test_file = parameters[parameters.index("-t")+1]
+    output_file = parameters[parameters.index("-o")+1]
+
+    words, pos, unique_words, unique_pos = train_preprocessing(training_list)
+    test_words = test_preprocessing(test_file)
+
+    print(get_initial_probability_table(words, pos, unique_pos))
 
     print("Training files: " + str(training_list))
     print("Test file: " + test_file)
     print("Output file: " + output_file)
 
     # Start the training and tagging operation.
-    tag (tuple_of_training_lines, test_file, output_file)
+    #tag(tuple_of_training_lines, test_file, output_file)
 
     # Output the file
     output = open(output_file, "w")
-    for i in list_of_test_lines:
+    for i in test_words:
         output.write(i)
         output.write('\n')
