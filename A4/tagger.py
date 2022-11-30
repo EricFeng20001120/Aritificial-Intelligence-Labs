@@ -3,7 +3,7 @@
 # and calls the tagger (which you need to implement)
 import os
 import sys
-import numpy as np
+import numpy
 
 def list_to_tuple(train_list):
     train_dict = []
@@ -17,7 +17,7 @@ def list_to_tuple(train_list):
 
 def build_initial_probabilities(pos, distinctive_pos, words):
     num_total_words = len(words)
-    initial_table = np.full(len(distinctive_pos), 0.00001)
+    initial_table = numpy.full(len(distinctive_pos), 0.00001)
     for i in range(num_total_words - 1):
         next_pos = pos[i + 1]
         if pos[i] == 'PUN': 
@@ -29,26 +29,26 @@ def build_initial_probabilities(pos, distinctive_pos, words):
 
 def build_transition_probabilities(pos, distinctive_pos):
     num_total_pos = len(pos)
-    transition_table = np.full((len(distinctive_pos), len(distinctive_pos)), 0.00001)
+    transition_table = numpy.full((len(distinctive_pos), len(distinctive_pos)), 0.00001)
     for i in range(num_total_pos - 1):
         curr_pos = pos[i]
         next_pos = pos[i + 1]
         current_pos_in_table = distinctive_pos[curr_pos]
         next_pos_in_table = distinctive_pos[next_pos]
         transition_table[current_pos_in_table, next_pos_in_table] = transition_table[current_pos_in_table, next_pos_in_table] + 1
-    normalize = transition_table/(transition_table.sum(axis=1)[:,np.newaxis])
+    normalize = transition_table/(transition_table.sum(axis=1)[:,numpy.newaxis])
     return normalize
 
 def build_emission_probabilities(pos, distinctive_pos, words, distinctive_words):
     num_total_words = len(words)
-    emission_table = np.full((len(distinctive_pos), len(distinctive_words)), 0.00001)
+    emission_table = numpy.full((len(distinctive_pos), len(distinctive_words)), 0.00001)
     for word in range(num_total_words):
         curr_word = pos[word]
         curr_word_in_words = words[word]
         pos_given_word = distinctive_pos[curr_word]
         words_given_word = distinctive_words[curr_word_in_words]
         emission_table[pos_given_word, words_given_word] = emission_table[pos_given_word, words_given_word] + 1
-    normalize = emission_table/(emission_table.sum(axis=1)[:,np.newaxis])
+    normalize = emission_table/(emission_table.sum(axis=1)[:,numpy.newaxis])
     return normalize
 
 def train_preprocessing(training_list):
@@ -102,18 +102,18 @@ def tag(training_list, test_file, output_file):
     num_distinctive_pos = len(distinctive_pos)
     num_total_test_words = len(test_file_words)
 
-    viterbi = np.zeros((num_distinctive_pos, num_total_test_words))
+    viterbi = numpy.zeros((num_distinctive_pos, num_total_test_words))
 
     configuration = {}
     for i in range(num_distinctive_pos):
-        configuration[i] = np.array(i)
+        configuration[i] = numpy.array(i)
 
     # Find the initial table, emission matrix and transition matrix probabilities
     initial_table = build_initial_probabilities(pos, distinctive_pos, words)
     emission_table = build_emission_probabilities(pos, distinctive_pos, words, distinctive_words)
     transition_table = build_transition_probabilities(pos, distinctive_pos)
 
-    commonly_appearing_word = np.argmax(initial_table)
+    commonly_appearing_word = numpy.argmax(initial_table)
 
     emission_table_most_common_word = emission_table[:, commonly_appearing_word]
     emission_table_first_test_word = emission_table[:, distinctive_words[test_file_words[0]]]
@@ -139,12 +139,12 @@ def tag(training_list, test_file, output_file):
             emission_table_from_i_to_most_common_word = emission_table[i, commonly_appearing_word]
 
             if test_file_words[t] in distinctive_words:
-                old_pos = np.argmax(emission_table_from_i_to_test_word * transition_table_up_to_i * all_viterbi_until_last_pos)
+                old_pos = numpy.argmax(emission_table_from_i_to_test_word * transition_table_up_to_i * all_viterbi_until_last_pos)
                 viterbi[i, t] = emission_table_from_i_to_test_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
             else:
-                old_pos = np.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * all_viterbi_until_last_pos)
+                old_pos = numpy.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * all_viterbi_until_last_pos)
                 viterbi[i, t] = emission_table_from_i_to_most_common_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
-            updated_configuration[i] = np.append(configuration[old_pos], i)
+            updated_configuration[i] = numpy.append(configuration[old_pos], i)
 
         viterbi_sum = sum(viterbi[:, t])
         viterbi[:, t] /= viterbi_sum
@@ -153,7 +153,7 @@ def tag(training_list, test_file, output_file):
 
     backward_pos = {value:key for (key, value) in distinctive_pos.items()}
     solution = []
-    for i in configuration[np.argmax(viterbi[:, -1])]:
+    for i in configuration[numpy.argmax(viterbi[:, -1])]:
         solution.append(backward_pos[i])
 
     # Output the file
