@@ -19,8 +19,9 @@ def build_initial_probabilities(pos, distinctive_pos, words):
     num_total_words = len(words)
     initial_table = np.full(len(distinctive_pos), 0.00001)
     for i in range(num_total_words - 1):
+        next_pos = pos[i + 1]
         if pos[i] == 'PUN': 
-            next_pos_in_table = distinctive_pos[pos[i + 1]]
+            next_pos_in_table = distinctive_pos[next_pos]
             initial_table[next_pos_in_table] = initial_table[next_pos_in_table] + 1
     initial_table_sum = sum(initial_table)
     initial_table_probabilities = initial_table/initial_table_sum
@@ -30,22 +31,24 @@ def build_transition_probabilities(pos, distinctive_pos):
     num_total_pos = len(pos)
     transition_table = np.full((len(distinctive_pos), len(distinctive_pos)), 0.00001)
     for i in range(num_total_pos - 1):
-        current_pos_in_table = distinctive_pos[pos[i]]
-        next_pos_in_table = distinctive_pos[pos[i + 1]]
+        curr_pos = pos[i]
+        next_pos = pos[i + 1]
+        current_pos_in_table = distinctive_pos[curr_pos]
+        next_pos_in_table = distinctive_pos[next_pos]
         transition_table[current_pos_in_table, next_pos_in_table] = transition_table[current_pos_in_table, next_pos_in_table] + 1
-    row_sum = transition_table.sum(axis=1)
-    normalize = transition_table/row_sum[: , np.newaxis]
+    normalize = transition_table/(transition_table.sum(axis=1)[:,np.newaxis])
     return normalize
 
 def build_emission_probabilities(pos, distinctive_pos, words, distinctive_words):
     num_total_words = len(words)
     emission_table = np.full((len(distinctive_pos), len(distinctive_words)), 0.00001)
     for word in range(num_total_words):
-        pos_given_word = distinctive_pos[pos[word]]
-        words_given_word = distinctive_words[words[word]]
+        curr_word = pos[word]
+        curr_word_in_words = words[word]
+        pos_given_word = distinctive_pos[curr_word]
+        words_given_word = distinctive_words[curr_word_in_words]
         emission_table[pos_given_word, words_given_word] = emission_table[pos_given_word, words_given_word] + 1
-    row_sum = emission_table.sum(axis=1)
-    normalize = emission_table/row_sum[: , np.newaxis]
+    normalize = emission_table/(emission_table.sum(axis=1)[:,np.newaxis])
     return normalize
 
 def train_preprocessing(training_list):
@@ -99,6 +102,8 @@ def tag(training_list, test_file, output_file):
     num_distinctive_pos = len(distinctive_pos)
     num_total_test_words = len(test_file_words)
 
+    viterbi = np.zeros((num_distinctive_pos, num_total_test_words))
+
     configuration = {}
     for i in range(num_distinctive_pos):
         configuration[i] = np.array(i)
@@ -109,13 +114,17 @@ def tag(training_list, test_file, output_file):
     transition_table = build_transition_probabilities(pos, distinctive_pos)
 
     commonly_appearing_word = np.argmax(initial_table)
-    viterbi = np.zeros((num_distinctive_pos, num_total_test_words))
+
+    emission_table_most_common_word = emission_table[:, commonly_appearing_word]
+    emission_table_first_test_word = emission_table[:, distinctive_words[test_file_words[0]]]
+    emission_table_sum = sum(emission_table_most_common_word * initial_table)
+    emission_table_sum_first_word = sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
 
     # Determine value for time step 0
     if test_file_words[0] not in distinctive_words:
-        viterbi[:,0] = initial_table*emission_table[:, commonly_appearing_word]/sum(initial_table*emission_table[:, commonly_appearing_word])
+        viterbi[:,0] = (emission_table_most_common_word * initial_table) / emission_table_sum
     else:
-        viterbi[:,0] = initial_table*emission_table[:, distinctive_words[test_file_words[0]]]/sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
+        viterbi[:,0] = (emission_table_first_test_word * initial_table) / emission_table_sum_first_word
 
     # Recursive step from time step 1 to the number of test words
     for t in range(1, num_total_test_words):
@@ -123,28 +132,29 @@ def tag(training_list, test_file, output_file):
 
         for i in range(num_distinctive_pos):
 
+            all_viterbi_until_last_pos = viterbi[:, t - 1]
             transition_table_up_to_i = transition_table[:,i]
             test_word_in_train = distinctive_words[test_file_words[t]]
             emission_table_from_i_to_test_word = emission_table[i, test_word_in_train]
             emission_table_from_i_to_most_common_word = emission_table[i, commonly_appearing_word]
 
             if test_file_words[t] in distinctive_words:
-                old_pos = np.argmax(viterbi[:,t-1]*transition_table_up_to_i*emission_table_from_i_to_test_word)
+                old_pos = np.argmax(emission_table_from_i_to_test_word * transition_table_up_to_i * all_viterbi_until_last_pos)
                 viterbi[i, t] = emission_table_from_i_to_test_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
             else:
-                old_pos = np.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * viterbi[:,t-1])
+                old_pos = np.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * all_viterbi_until_last_pos)
                 viterbi[i, t] = emission_table_from_i_to_most_common_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
             updated_configuration[i] = np.append(configuration[old_pos], i)
-            
-        configuration = updated_configuration
+
         viterbi_sum = sum(viterbi[:, t])
-        viterbi[:, t] = viterbi[:, t]/viterbi_sum
+        viterbi[:, t] /= viterbi_sum
+        configuration = updated_configuration
 
-    solution  = []
-    reversed_distinctive_tags = {value : key for (key, value) in distinctive_pos.items()}
 
-    for stage in configuration[np.argmax(viterbi[:,-1])]:
-        solution.append(reversed_distinctive_tags[stage])
+    backward_pos = {value:key for (key, value) in distinctive_pos.items()}
+    solution = []
+    for i in configuration[np.argmax(viterbi[:, -1])]:
+        solution.append(backward_pos[i])
 
     # Output the file
     output = open(output_file, "w")
