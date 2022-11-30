@@ -161,7 +161,8 @@ def tag(training_list, test_file, output_file):
 
     backward_pos = {value:key for (key, value) in distinctive_pos.items()}
     solution = []
-    for i in configuration[numpy.argmax(viterbi[:, -1])]:
+    max_last_elem = numpy.argmax(viterbi[:, -1])
+    for i in configuration[max_last_elem]:
         solution.append(backward_pos[i])
 
     # Output the file
