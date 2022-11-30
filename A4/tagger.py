@@ -18,11 +18,13 @@ def list_to_tuple(train_list):
 def build_initial_probabilities(pos, distinctive_pos, words):
     num_total_words = len(words)
     initial_table = numpy.full(len(distinctive_pos), 0.00001)
-    for i in range(num_total_words - 1):
+    i = 0
+    while (i != (num_total_words - 1)):
         next_pos = pos[i + 1]
         if pos[i] == 'PUN': 
             next_pos_in_table = distinctive_pos[next_pos]
             initial_table[next_pos_in_table] = initial_table[next_pos_in_table] + 1
+        i += 1
     initial_table_sum = sum(initial_table)
     initial_table_probabilities = initial_table/initial_table_sum
     return initial_table_probabilities
@@ -30,24 +32,28 @@ def build_initial_probabilities(pos, distinctive_pos, words):
 def build_transition_probabilities(pos, distinctive_pos):
     num_total_pos = len(pos)
     transition_table = numpy.full((len(distinctive_pos), len(distinctive_pos)), 0.00001)
-    for i in range(num_total_pos - 1):
+    i = 0
+    while (i != (num_total_pos - 1)):
         curr_pos = pos[i]
         next_pos = pos[i + 1]
         current_pos_in_table = distinctive_pos[curr_pos]
         next_pos_in_table = distinctive_pos[next_pos]
         transition_table[current_pos_in_table, next_pos_in_table] = transition_table[current_pos_in_table, next_pos_in_table] + 1
+        i += 1
     normalize = transition_table/(transition_table.sum(axis=1)[:,numpy.newaxis])
     return normalize
 
 def build_emission_probabilities(pos, distinctive_pos, words, distinctive_words):
     num_total_words = len(words)
     emission_table = numpy.full((len(distinctive_pos), len(distinctive_words)), 0.00001)
-    for word in range(num_total_words):
+    word = 0
+    while (word != num_total_words):
         curr_word = pos[word]
         curr_word_in_words = words[word]
         pos_given_word = distinctive_pos[curr_word]
         words_given_word = distinctive_words[curr_word_in_words]
         emission_table[pos_given_word, words_given_word] = emission_table[pos_given_word, words_given_word] + 1
+        word += 1
     normalize = emission_table/(emission_table.sum(axis=1)[:,numpy.newaxis])
     return normalize
 
@@ -105,8 +111,10 @@ def tag(training_list, test_file, output_file):
     viterbi = numpy.zeros((num_distinctive_pos, num_total_test_words))
 
     configuration = {}
-    for i in range(num_distinctive_pos):
+    i = 0
+    while (i != num_distinctive_pos):
         configuration[i] = numpy.array(i)
+        i += 1
 
     # Find the initial table, emission matrix and transition matrix probabilities
     initial_table = build_initial_probabilities(pos, distinctive_pos, words)
