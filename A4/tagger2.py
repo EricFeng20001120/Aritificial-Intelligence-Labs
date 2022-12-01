@@ -43,9 +43,9 @@ def train_preprocessing(training_list):
                 if l.split()[2] not in pos_with_begin:
                     pos_with_begin[l.split()[2]] = 1
                 elif l.split()[0] == '.' or l.split()[0] == '!' or l.split()[0] == '?' or l.split()[0] == '"':
-                    pos_with_begin['begin'] += 1
+                    pos_with_begin['begin'] = pos_with_begin['begin'] + 1
                 else:
-                    pos_with_begin[l.split()[2]] += 1
+                    pos_with_begin[l.split()[2]] = pos_with_begin[l.split()[2]] + 1
 
     return tuple_of_training_lines, pos_with_begin, pos_without_begin
 
@@ -63,23 +63,24 @@ def build_transition_matrix(tuple_of_training_lines, pos_with_begin):
     i = 0
     while i != len(tuple_of_training_lines):
         num_pos_with_begin = 1/pos_with_begin['begin']
+        num_pos_with_begin2 = 1/pos_with_begin[tuple_of_training_lines[i-1][1]]
         if i == 0:
             if tuple_of_training_lines[i][1] in transitionMatrix["begin"]:
-                transitionMatrix['begin'][tuple_of_training_lines[i][1]] += num_pos_with_begin
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin + transitionMatrix['begin'][tuple_of_training_lines[i][1]]
             else:
                 transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin
         elif tuple_of_training_lines[i-1][0] == '"' or tuple_of_training_lines[i-1][0] == '?' or tuple_of_training_lines[i-1][0] == '.' or tuple_of_training_lines[i-1][0] == '!':
             if tuple_of_training_lines[i][1] in transitionMatrix['begin']:
-                transitionMatrix['begin'][tuple_of_training_lines[i][1]] += num_pos_with_begin
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin + transitionMatrix['begin'][tuple_of_training_lines[i][1]]
             else:
                 transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin
         else:
             if tuple_of_training_lines[i-1][1] not in transitionMatrix:
                 transitionMatrix[tuple_of_training_lines[i-1][1]] = {}
             if tuple_of_training_lines[i][1] not in transitionMatrix[tuple_of_training_lines[i-1][1]]:
-                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] = 1 / pos_with_begin[tuple_of_training_lines[i-1][1]]
+                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] = num_pos_with_begin2
             else:
-                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] += 1 / pos_with_begin[tuple_of_training_lines[i-1][1]]
+                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] = num_pos_with_begin2 + transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]]
         i = i+1
 
     return transitionMatrix
@@ -92,7 +93,7 @@ def build_emission_matrix(tuple_of_training_lines, pos_without_begin):
         if tuple_of_training_lines[i][1] not in emissionMatrix:
             emissionMatrix[tuple_of_training_lines[i][1]] = {}
         if tuple_of_training_lines[i][0] in emissionMatrix[tuple_of_training_lines[i][1]]:
-            emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]] += num_pos_without_begin
+            emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]] = num_pos_without_begin + emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]]
         else:
             emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]] = num_pos_without_begin
         i = i+1
@@ -100,15 +101,16 @@ def build_emission_matrix(tuple_of_training_lines, pos_without_begin):
     return emissionMatrix
 
 def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos_without_begin):
+    final_ans = ""
     viterbi = {}
-    result = ''
     num_test_file_words = len(test_file_words)
-    for t in range(num_test_file_words):
+    t = 0
+    while t != num_test_file_words:
         updated_viterbi = {}
         if t == 0:
             for u in pos_without_begin:
                 if test_file_words[t] not in emissionMatrix[u]:
-                    emission = - 100
+                    emission = -100
                 else:
                     emission = emissionMatrix[u][test_file_words[t]]
                 if u not in transitionMatrix['begin']:
@@ -127,12 +129,13 @@ def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos
                 else:
                     transition = transitionMatrix['begin'][u]
                 updated_viterbi[u] = emission + transition
-            if test_file_words[t-1][0] != '"':
-                result += (test_file_words[t-1] + ' : ' + 'PUQ' + '\n')
-            else:
-                result += (test_file_words[t-1] + ' : ' + 'PUN' + '\n')
 
-        elif t != 0:
+            if test_file_words[t-1][0] == '"':
+                final_ans += (test_file_words[t-1] + ' : ' + 'PUQ' + '\n')
+            else:
+                final_ans += (test_file_words[t-1] + ' : ' + 'PUN' + '\n')
+
+        else:
             prev = {}
             for u in pos_without_begin:
                 updated_viterbi[u] = -10000000000
@@ -151,13 +154,16 @@ def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos
                             prev[u] = x
                             updated_viterbi[u] = updated_sum
                         
-            result += (test_file_words[t-1] + ' : ' + prev[max(updated_viterbi, key=lambda key: updated_viterbi[key])] + '\n')
+            final_ans = (test_file_words[t-1] + ' : ' + prev[max(updated_viterbi, key=lambda key: updated_viterbi[key])] + '\n') + final_ans
 
         if t == len(test_file_words) - 1:
-            result += (test_file_words[t] + ' : ' + max(updated_viterbi, key=lambda key: updated_viterbi[key]) + '\n')
+            final_ans = (test_file_words[t] + ' : ' + max(updated_viterbi, key=lambda key: updated_viterbi[key]) + '\n') + final_ans
+        
         viterbi = updated_viterbi
 
-    return result
+        t+=1
+
+    return final_ans
 
 
 def tag(training_list, test_file, output_file):
