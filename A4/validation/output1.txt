@@ -10,7 +10,7 @@ the : AT0
 plate : NN1
 before : CJS
 him : PNP
-. : PUN
+. : PUQ
 Having : VHG
 thought : VVN
 he : PNP
@@ -44,7 +44,7 @@ with : PRP
 such : DT0
 admirable : AJ0
 promptness : NN1
-. : PUN
+. : PUQ
 Sleep : NN1-VVB
 would : VM0
 perhaps : AV0
@@ -85,7 +85,7 @@ house : NN1
 behind : PRP
 the : AT0
 Westway : NN1-NP0
-. : PUN
+. : PUQ
 He : PNP
 took : VVD
 an : AT0
@@ -114,7 +114,7 @@ baked : AJ0
 beans : NN2
 , : PUN
 cautiously : AV0
-. : PUN
+. : PUQ
 He : PNP
 finished : VVD
 the : AT0
@@ -157,7 +157,7 @@ elbows : NN2
 on : PRP
 the : AT0
 table : NN1
-. : PUN
+. : PUQ
 He : PNP
 lifted : VVD
 a : AT0

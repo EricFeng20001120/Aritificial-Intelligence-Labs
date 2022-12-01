@@ -17069,7 +17069,7 @@ and : CJC
 it : PNP
 would : VM0
 be : VBI
-<w c5="AT0" hw="a" pos="ART">a : AV0
+a : AV0
 great : AJ0
 deal : NN1
 better : AV0
@@ -47670,7 +47670,7 @@ was : VBD
 leaving : VVG
 her : DPS
 job : NN1
-<w c5="AV0" hw="rather" pos="ADV">rather : CJS
+rather : CJS
 than : CJS
 allow : VVI
 any : DT0
