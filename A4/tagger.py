@@ -1,5 +1,5 @@
 # The tagger.py starter code for CSC384 A4.
-# Currently reads in the names of the training files, test file and output file,
+# Currently readu in the names of the training files, test file and output file,
 # and calls the tagger (which you need to implement)
 import os
 import sys
@@ -15,48 +15,6 @@ def list_to_tuple(train_list):
             train_dict.append([':', 'PUN'])
     return train_dict
 
-def build_initial_probabilities(pos, distinctive_pos, words):
-    num_total_words = len(words)
-    initial_table = numpy.full(len(distinctive_pos), 0.00001)
-    i = 0
-    while (i != (num_total_words - 1)):
-        next_pos = pos[i + 1]
-        if pos[i] == 'PUN': 
-            next_pos_in_table = distinctive_pos[next_pos]
-            initial_table[next_pos_in_table] = initial_table[next_pos_in_table] + 1
-        i += 1
-    initial_table_sum = sum(initial_table)
-    initial_table_probabilities = initial_table/initial_table_sum
-    return initial_table_probabilities
-
-def build_transition_probabilities(pos, distinctive_pos):
-    num_total_pos = len(pos)
-    transition_table = numpy.full((len(distinctive_pos), len(distinctive_pos)), 0.00001)
-    i = 0
-    while (i != (num_total_pos - 1)):
-        curr_pos = pos[i]
-        next_pos = pos[i + 1]
-        current_pos_in_table = distinctive_pos[curr_pos]
-        next_pos_in_table = distinctive_pos[next_pos]
-        transition_table[current_pos_in_table, next_pos_in_table] = transition_table[current_pos_in_table, next_pos_in_table] + 1
-        i += 1
-    normalize = transition_table/(transition_table.sum(axis=1)[:,numpy.newaxis])
-    return normalize
-
-def build_emission_probabilities(pos, distinctive_pos, words, distinctive_words):
-    num_total_words = len(words)
-    emission_table = numpy.full((len(distinctive_pos), len(distinctive_words)), 0.00001)
-    word = 0
-    while (word != num_total_words):
-        curr_word = pos[word]
-        curr_word_in_words = words[word]
-        pos_given_word = distinctive_pos[curr_word]
-        words_given_word = distinctive_words[curr_word_in_words]
-        emission_table[pos_given_word, words_given_word] = emission_table[pos_given_word, words_given_word] + 1
-        word += 1
-    normalize = emission_table/(emission_table.sum(axis=1)[:,numpy.newaxis])
-    return normalize
-
 def train_preprocessing(training_list):
     list_of_training_lines = []
     tmp = []
@@ -71,18 +29,25 @@ def train_preprocessing(training_list):
     list_of_training_lines = [x.rstrip() for x in list_of_training_lines]
     list_of_training_lines = [x.replace(' ', '') for x in list_of_training_lines]
     tuple_of_training_lines = list_to_tuple(list_of_training_lines)
-
-    words = [x[0] for x in tuple_of_training_lines]
-    pos = [x[1] for x in tuple_of_training_lines]
     
-    distinctive_words = {}
-    for i, word in enumerate(set(words)):
-        distinctive_words[word] = i
-    distinctive_pos = {}
-    for i, pos_tag in enumerate(set(pos)):
-        distinctive_pos[pos_tag] = i
+    pos_with_begin = {'begin': 0}
+    pos_without_begin = {}
+    for i in training_list:
+        with open(i, "r") as file:
+            for l in file.readlines():
+                if l.split()[2] in pos_without_begin:
+                    pos_without_begin[l.split()[2]] = pos_without_begin[l.split()[2]] + 1
+                else:
+                    pos_without_begin[l.split()[2]] = 1
 
-    return words, pos, distinctive_words, distinctive_pos
+                if l.split()[2] not in pos_with_begin:
+                    pos_with_begin[l.split()[2]] = 1
+                elif l.split()[0] == '.' or l.split()[0] == '!' or l.split()[0] == '?' or l.split()[0] == '"':
+                    pos_with_begin['begin'] = pos_with_begin['begin'] + 1
+                else:
+                    pos_with_begin[l.split()[2]] = pos_with_begin[l.split()[2]] + 1
+
+    return tuple_of_training_lines, pos_with_begin, pos_without_begin
 
 def test_preprocessing(test_lines):
     # Process the input test file
@@ -93,6 +58,117 @@ def test_preprocessing(test_lines):
 
     return list_of_test_lines
 
+def build_transition_matrix(tuple_of_training_lines, pos_with_begin):
+    transitionMatrix = {'begin': {}}
+    i = 0
+    while i != len(tuple_of_training_lines):
+        num_pos_with_begin = 1/pos_with_begin['begin']
+        num_pos_with_begin2 = 1/pos_with_begin[tuple_of_training_lines[i-1][1]]
+        if i == 0:
+            if tuple_of_training_lines[i][1] in transitionMatrix["begin"]:
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin + transitionMatrix['begin'][tuple_of_training_lines[i][1]]
+            else:
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin
+        elif tuple_of_training_lines[i-1][0] == '"' or tuple_of_training_lines[i-1][0] == '?' or tuple_of_training_lines[i-1][0] == '.' or tuple_of_training_lines[i-1][0] == '!':
+            if tuple_of_training_lines[i][1] in transitionMatrix['begin']:
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin + transitionMatrix['begin'][tuple_of_training_lines[i][1]]
+            else:
+                transitionMatrix['begin'][tuple_of_training_lines[i][1]] = num_pos_with_begin
+        else:
+            if tuple_of_training_lines[i-1][1] not in transitionMatrix:
+                transitionMatrix[tuple_of_training_lines[i-1][1]] = {}
+            if tuple_of_training_lines[i][1] not in transitionMatrix[tuple_of_training_lines[i-1][1]]:
+                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] = num_pos_with_begin2
+            else:
+                transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]] = num_pos_with_begin2 + transitionMatrix[tuple_of_training_lines[i-1][1]][tuple_of_training_lines[i][1]]
+        i = i+1
+
+    return transitionMatrix
+
+def build_emission_matrix(tuple_of_training_lines, pos_without_begin):
+    emissionMatrix = {}
+    i = 0
+    while i != len(tuple_of_training_lines):
+        num_pos_without_begin = 1/pos_without_begin[tuple_of_training_lines[i][1]]
+        if tuple_of_training_lines[i][1] not in emissionMatrix:
+            emissionMatrix[tuple_of_training_lines[i][1]] = {}
+        if tuple_of_training_lines[i][0] in emissionMatrix[tuple_of_training_lines[i][1]]:
+            emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]] = num_pos_without_begin + emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]]
+        else:
+            emissionMatrix[tuple_of_training_lines[i][1]][tuple_of_training_lines[i][0]] = num_pos_without_begin
+        i = i+1
+    
+    return emissionMatrix
+
+def matrix_manipulate(matrix):
+    return dict((i,dict((j,numpy.log(k)) for j,k in l.items())) for i,l in matrix.items())
+
+def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos_without_begin):
+    final_ans = ""
+    viterbi = {}
+    num_test_file_words = len(test_file_words)
+    t = 0
+    while t != num_test_file_words:
+        updated_viterbi = {}
+        if t == 0:
+            for u in pos_without_begin:
+                if test_file_words[t] not in emissionMatrix[u]:
+                    emission = -100
+                else:
+                    emission = emissionMatrix[u][test_file_words[t]]
+                if u not in transitionMatrix['begin']:
+                    transition = -100
+                else:
+                    transition = transitionMatrix['begin'][u] 
+                updated_viterbi[u] = emission + transition
+        elif test_file_words[t-1][0] == '"' or test_file_words[t-1][0] == '!' or test_file_words[t-1][0] == '?' or test_file_words[t-1][0] == '.':
+            for u in pos_without_begin:
+                if test_file_words[t] not in emissionMatrix[u]:
+                    emission = -100
+                else:
+                    emission = emissionMatrix[u][test_file_words[t]]
+                if u not in transitionMatrix['begin']:
+                    transition = -100
+                else:
+                    transition = transitionMatrix['begin'][u]
+                updated_viterbi[u] = emission + transition
+
+            if test_file_words[t-1][0] == '"':
+                final_ans += (test_file_words[t-1] + ' : ' + 'PUQ' + '\n')
+            else:
+                final_ans += (test_file_words[t-1] + ' : ' + 'PUN' + '\n')
+
+        else:
+            prev = {}
+            for u in pos_without_begin:
+                updated_viterbi[u] = -10000000000
+                for x in viterbi:
+                    if x in transitionMatrix:
+                        if test_file_words[t] not in emissionMatrix[u]:
+                            emission = -100
+                        else:
+                            emission = emissionMatrix[u][test_file_words[t]]
+                        if u not in transitionMatrix[x]:
+                            transition = -100
+                        else:
+                            transition = transitionMatrix[x][u]
+                        updated_sum = emission + transition + viterbi[x]
+                        if updated_sum > updated_viterbi[u]:
+                            prev[u] = x
+                            updated_viterbi[u] = updated_sum
+                        
+            final_ans = final_ans + (test_file_words[t-1] + ' : ' + prev[max(updated_viterbi, key=lambda key: updated_viterbi[key])] + '\n')
+
+        if t == len(test_file_words) - 1:
+            final_ans = final_ans + (test_file_words[t] + ' : ' + max(updated_viterbi, key=lambda key: updated_viterbi[key]) + '\n') 
+        
+        viterbi = updated_viterbi
+
+        t+=1
+
+    return final_ans
+
+
 def tag(training_list, test_file, output_file):
     # Tag the words from the untagged input file and write them into the output file.
     # Doesn't do much else beyond that yet.
@@ -101,75 +177,20 @@ def tag(training_list, test_file, output_file):
     # YOUR IMPLEMENTATION GOES HERE
     #
 
-    words, pos, distinctive_words, distinctive_pos = train_preprocessing(training_list)
+    tuple_of_training_lines, pos_with_begin, pos_without_begin = train_preprocessing(training_list)
     test_file_words = test_preprocessing(test_file)
 
-    # Find the number of distinctive parts of speech and total number of test file words
-    num_distinctive_pos = len(distinctive_pos)
-    num_total_test_words = len(test_file_words)
+    emissionMatrix = build_emission_matrix(tuple_of_training_lines, pos_without_begin)
+    transitionMatrix = build_transition_matrix(tuple_of_training_lines, pos_with_begin)
 
-    viterbi = numpy.zeros((num_distinctive_pos, num_total_test_words))
+    emissionMatrix, transitionMatrix = matrix_manipulate(emissionMatrix), matrix_manipulate(transitionMatrix)
 
-    configuration = {}
-    i = 0
-    while (i != num_distinctive_pos):
-        configuration[i] = numpy.array(i)
-        i += 1
-
-    # Find the initial table, emission matrix and transition matrix probabilities
-    initial_table = build_initial_probabilities(pos, distinctive_pos, words)
-    emission_table = build_emission_probabilities(pos, distinctive_pos, words, distinctive_words)
-    transition_table = build_transition_probabilities(pos, distinctive_pos)
-
-    commonly_appearing_word = numpy.argmax(initial_table)
-
-    emission_table_most_common_word = emission_table[:, commonly_appearing_word]
-    emission_table_first_test_word = emission_table[:, distinctive_words[test_file_words[0]]]
-    emission_table_sum = sum(emission_table_most_common_word * initial_table)
-    emission_table_sum_first_word = sum(initial_table*emission_table[:, distinctive_words[test_file_words[0]]])
-
-    # Determine value for time step 0
-    if test_file_words[0] not in distinctive_words:
-        viterbi[:,0] = (emission_table_most_common_word * initial_table) / emission_table_sum
-    else:
-        viterbi[:,0] = (emission_table_first_test_word * initial_table) / emission_table_sum_first_word
-
-    # Recursive step from time step 1 to the number of test words
-    for t in range(1, num_total_test_words):
-        updated_configuration = {}
-
-        for i in range(num_distinctive_pos):
-
-            all_viterbi_until_last_pos = viterbi[:, t - 1]
-            transition_table_up_to_i = transition_table[:,i]
-            test_word_in_train = distinctive_words[test_file_words[t]]
-            emission_table_from_i_to_test_word = emission_table[i, test_word_in_train]
-            emission_table_from_i_to_most_common_word = emission_table[i, commonly_appearing_word]
-
-            if test_file_words[t] in distinctive_words:
-                old_pos = numpy.argmax(emission_table_from_i_to_test_word * transition_table_up_to_i * all_viterbi_until_last_pos)
-                viterbi[i, t] = emission_table_from_i_to_test_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
-            else:
-                old_pos = numpy.argmax(emission_table_from_i_to_most_common_word * transition_table_up_to_i * all_viterbi_until_last_pos)
-                viterbi[i, t] = emission_table_from_i_to_most_common_word * transition_table[old_pos, i] * viterbi[old_pos, t-1]
-            updated_configuration[i] = numpy.append(configuration[old_pos], i)
-
-        viterbi_sum = sum(viterbi[:, t])
-        viterbi[:, t] /= viterbi_sum
-        configuration = updated_configuration
-
-
-    backward_pos = {value:key for (key, value) in distinctive_pos.items()}
-    solution = []
-    max_last_elem = numpy.argmax(viterbi[:, -1])
-    for i in configuration[max_last_elem]:
-        solution.append(backward_pos[i])
+    solution = viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos_without_begin)
 
     # Output the file
     output = open(output_file, "w")
-    for i in range(len(solution)):
-        output.write(test_file_words[i] + " : " + solution[i])
-        output.write('\n')
+    output.write(solution)
+    
 
 if __name__ == '__main__':
     # Run the tagger function.
