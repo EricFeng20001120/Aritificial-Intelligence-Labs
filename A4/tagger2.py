@@ -100,6 +100,9 @@ def build_emission_matrix(tuple_of_training_lines, pos_without_begin):
     
     return emissionMatrix
 
+def matrix_manipulate(matrix):
+    return dict((i,dict((j,numpy.log(k)) for j,k in l.items())) for i,l in matrix.items())
+
 def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos_without_begin):
     final_ans = ""
     viterbi = {}
@@ -180,8 +183,7 @@ def tag(training_list, test_file, output_file):
     emissionMatrix = build_emission_matrix(tuple_of_training_lines, pos_without_begin)
     transitionMatrix = build_transition_matrix(tuple_of_training_lines, pos_with_begin)
 
-    emissionMatrix = dict((k, dict((s, numpy.log(x)) for s, x in v.items())) for k, v in emissionMatrix.items())
-    transitionMatrix = dict((k, dict((s, numpy.log(x)) for s, x in v.items())) for k, v in transitionMatrix.items())
+    emissionMatrix, transitionMatrix = matrix_manipulate(emissionMatrix), matrix_manipulate(transitionMatrix)
 
     solution = viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos_without_begin)
 
