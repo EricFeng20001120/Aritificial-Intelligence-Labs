@@ -134,9 +134,9 @@ def viterbi_probabilities(transitionMatrix, emissionMatrix, test_file_words, pos
                 updated_viterbi[u] = emission + transition
 
             if test_file_words[t-1][0] == '"':
-                final_ans += (test_file_words[t-1] + ' : ' + 'PUQ' + '\n')
+                final_ans = final_ans + (test_file_words[t-1] + ' : ' + 'PUQ' + '\n')
             else:
-                final_ans += (test_file_words[t-1] + ' : ' + 'PUN' + '\n')
+                final_ans = final_ans + (test_file_words[t-1] + ' : ' + 'PUN' + '\n')
 
         else:
             prev = {}
