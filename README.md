@@ -1,5 +1,5 @@
 # Intro-to-AI
-CSC384
+Collection of CSC384 Labs 
 
 A1: Solving Hua Rong Dao (Klotski) using Manhattan heuristic search
 
