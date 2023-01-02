@@ -1,5 +1,5 @@
 # Intro-to-AI
-Collection of assignments for CSC384 (Intro to Aritifical Intelligence) course at University of Toronto for Fall 2022
+Collection of assignments for CSC384 (Aritifical Intelligence) course at University of Toronto for Fall 2022
 
 A1: Solving Hua Rong Dao (Klotski) using Manhattan heuristic search
 
